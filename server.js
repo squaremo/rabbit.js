@@ -42,6 +42,10 @@ socket.on('connection', function (client) {
             sys.log('connecting pub socket');
             pubSocket(client, msg.substr(4));
         }
+        else if (msg.substr(0, 3) == 'sub') {
+            sys.log('connecting sub socket');
+            subSocket(client, msg.substr(4));
+        }
         else {
             client.send("Unknown socket type");
             sys.log("Unknown socket type: " + msg);
@@ -56,11 +60,23 @@ function pubSocket(client, exchangeName) {
     var exchange = (exchangeName == '') ?
         connection.exchange('amq.fanout') :
         connection.exchange(exchangeName,
-                            {'type': 'fanout'});
+                            {'passive': true});
     client.on('message', function(msg) {
         sys.log('pub message: ' + msg);
         exchange.publish('', msg);
     });
+}
+
+function subSocket(client, exchangeName) {
+    sys.log('sub socket opened');
+    var exchange = (exchangeName == '') ?
+        'amq.fanout' : exchangeName;
+    var queue = connection.queue('foo');
+    queue.subscribe(function(message) {
+        sys.log('sub message: ' + sys.inspect(message));
+        client.send(message.data.toString());
+    });
+    queue.bind(exchange, '');
 }
 
 server.listen(8080);
