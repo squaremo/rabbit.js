@@ -14,7 +14,7 @@ function read_length(buffer) {
 }
 
 // debug
-exports.read_length = read_length;
+//exports.read_length = read_length;
 
 function MessageStream(stream) {
     EventEmitter.call(this);
