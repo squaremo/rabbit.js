@@ -27,6 +27,39 @@ function subSocket(client, exchangeName) {
     queue.bind(exchange, '');
 }
 
+function pushSocket(client, queueName) {
+    sys.debug('push socket opened');
+    if (queueName == '') {
+        client.send("Must send address for push");
+        client.end();
+        return;
+    }
+    var queue = connection.queue(queueName, {'autoDelete': false,
+                                             'durable': true,
+                                             'exclusive': false});
+    var exchange = connection.exchange('');
+    client.on('message', function(msg) {
+        sys.debug('push message: ' + msg);
+        exchange.publish(queueName, msg);
+    });
+}
+
+function pullSocket(client, queueName) {
+    sys.debug('pull socket opened');
+    if (queueName == '') {
+        client.send("Must send address for pull");
+        client.end();
+        return;
+    }
+    var queue = connection.queue(queueName, {'autoDelete': false,
+                                             'durable': true,
+                                             'exclusive': false});
+    queue.subscribe(function(message) {
+        sys.debug('pull message: ' + sys.inspect(message));
+        client.send(message.data);
+    });
+}
+
 function listen(server) {
     server.on('connection', function (client) {
         function dispatch(msg) {
@@ -34,17 +67,24 @@ function listen(server) {
             msg = msg.toString();
             var i = msg.indexOf(' ');
             var type = (i > -1) ? msg.substring(0, i) : msg;
-            var addr = (i > -1) ? msg.substr(i) : '';
+            var addr = (i > -1) ? msg.substr(i+1) : '';
             sys.debug('type: ' + type);
             switch (type) {
             case 'pub':
                 pubSocket(client, addr)
                 break;;
             case 'sub':
-                subSocket(client, msg.substr(4));
+                subSocket(client, addr);
+                break;
+            case 'push':
+                pushSocket(client, addr);
+                break;
+            case 'pull':
+                pullSocket(client, addr);
                 break;
             default:
                 client.send("Unknown socket type");
+                client.end();
                 sys.debug("Unknown socket type: " + msg);
             }
         }

@@ -112,6 +112,10 @@ MessageStream.prototype.send = function (message) {
     this._stream.write(message);
 }
 
+MessageStream.prototype.end = function () {
+    this._stream.end();
+}
+
 exports.MessageStream = MessageStream;
 
 function MessageServer(server) {
