@@ -1,57 +1,36 @@
 <!doctype html>
 <html>
   <head>
-    <title>rabbit.io</title>
-    <script src="/json.js"></script> <!-- for ie -->
-    <script src="/socket.io/socket.io.js"></script>
+    <title>rabbit.js examples</title>
   </head>
   <body>
-    
-    <script>
-      function message(obj){
-        var el = document.createElement('p');
-        el.innerHTML = '<em>' + esc(obj) + '</em>'
-        document.getElementById('chat').appendChild(el);
-        document.getElementById('chat').scrollTop = 1000000;
-      }
-      
-      function send(){
-        var val = document.getElementById('text').value;
-        pub.send(val);
-      }
-      
-      function esc(msg){
-        return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      };
-      
-      var pub = new io.Socket(null, {transports: ['xhr-multipart', 'xhr-polling']});
-      var sub = new io.Socket(null, {transports: ['xhr-multipart', 'xhr-polling']});
-      
-      pub.connect();
-      pub.send('pub');
 
-      sub.connect();
-      sub.send('sub');
-      sub.on('message', function(obj){
-        message(obj);
-      });
-    </script>
+    <h1>rabbit.js examples</h1>
     
-    <div id="chat"></div>
-    <form id="form" onsubmit="send(); return false">
-      <input type="text" autocomplete="off" id="text"><input type="submit" value="Send">
-    </form>
-    
-    <style>
-      #chat { height: 300px; overflow: auto; width: 800px; border: 1px solid #eee; font: 13px Helvetica, Arial; }
-      #chat p { padding: 8px; margin: 0; }
-      #chat p:nth-child(odd) { background: #F6F6F6; }
-      #form { width: 782px; background: #333; padding: 5px 10px; }
-      #form input[type=text] { width: 700px; padding: 5px; background: #fff; border: 1px solid #fff; }
-      #form input[type=submit] { cursor: pointer; background: #999; border: none; padding: 6px 8px; -moz-border-radius: 8px; -webkit-border-radius: 8px; margin-left: 5px; text-shadow: 0 1px 0 #fff; }
-      #form input[type=submit]:hover { background: #A2A2A2; }
-      #form input[type=submit]:active { position: relative; top: 2px; }
-    </style>
+    <dl>
+      <dt>
+        <h3>Publish/subscribe
+      </dt>
+      <dd>
+        <p>
+          <a href="pubsub.html">pubsub.html</a> demonstrates a
+          publish/subscribe pattern, with each "window" having both a
+          pub socket (for <strong>pub</strong>lishing) and a sub socket
+          (for <strong>sub</strong>scribing to everything published).
+        </p>
+      </dd>
+
+      <dt>
+        <h3>Request/reply
+      </dt>
+      <dd>
+        <a href="request.html">request.html</a> and <a
+        href="reply.html">reply.html</a> demonstrate a request/reply
+        pattern. The request page sends requests and gets replies; the
+        reply page gets requests and sends replies.
+      </dd>
+
+    </dl>
     
   </body>
 </html>
