@@ -3,32 +3,35 @@ var sys = require('sys');
 
 var connection = amqp.createConnection({'host': '127.0.0.1', 'port': 5672});
 
+var debug = (process.env['DEBUG']) ?
+    function(msg) { sys.debug(msg) } : function() {};
+
 function pubSocket(client, exchangeName) {
-    sys.debug('pub socket opened');
+    sys.log('pub socket opened');
     var exchange = (exchangeName == '') ?
         connection.exchange('amq.fanout') :
         connection.exchange(exchangeName,
                             {'passive': true});
     client.on('message', function(msg) {
-        sys.debug('pub message: ' + msg);
+        debug('pub:'); debug(msg);
         exchange.publish('', msg);
     });
 }
 
 function subSocket(client, exchangeName) {
-    sys.debug('sub socket opened');
+    sys.log('sub socket opened');
     var exchange = (exchangeName == '') ?
         'amq.fanout' : exchangeName;
     var queue = connection.queue('');
     queue.subscribe(function(message) {
-        sys.debug('sub message: ' + sys.inspect(message));
+        debug('sub:'); debug(message);
         client.send(message.data);
     });
     queue.bind(exchange, '');
 }
 
 function pushSocket(client, queueName) {
-    sys.debug('push socket opened');
+    sys.log('push socket opened');
     if (queueName == '') {
         client.send("Must send address for push");
         client.end();
@@ -39,7 +42,7 @@ function pushSocket(client, queueName) {
                                              'exclusive': false});
     var exchange = connection.exchange('');
     client.on('message', function(msg) {
-        sys.debug('push message: ' + msg);
+        debug('push:'); debug(msg);
         exchange.publish(queueName, msg);
     });
 }
@@ -55,7 +58,7 @@ function pullSocket(client, queueName) {
                                              'durable': true,
                                              'exclusive': false});
     queue.subscribe(function(message) {
-        sys.debug('pull message: ' + sys.inspect(message));
+        debug('pull:'); debug(message);
         client.send(message.data);
     });
 }
@@ -73,9 +76,11 @@ function reqSocket(client, queueName) {
     var requestQueue = connection.queue(queueName, {'durable': true,
                                                     'autoDelete': false});
     replyQueue.subscribe(function(message) {
+        debug('reply:'); debug(message);
         client.send(message.data);
     });
     client.on('message', function(message) {
+        debug('request:'); debug(message);
         connection.publish(queueName, message,
                            {'replyTo': replyQueue.name});
     });
@@ -92,13 +97,12 @@ function repSocket(client, queueName) {
                                              'autoDelete': false});
     var replyTo = '';
     client.on('message', function (message) {
-        sys.debug("Replying to: " + replyTo);
+        debug('reply:'); debug(message);
         connection.publish(replyTo, message);
     });
     queue.subscribe(function(message) {
-        console.log(sys.inspect(message, null));
         replyTo = message._properties.replyTo;
-        sys.debug("Set reply to: " + replyTo);
+        debug('request:'); debug(message);
         client.send(message.data);
     });
 }
@@ -111,7 +115,6 @@ function listen(server) {
             var i = msg.indexOf(' ');
             var type = (i > -1) ? msg.substring(0, i) : msg;
             var addr = (i > -1) ? msg.substr(i+1) : '';
-            sys.debug('type: ' + type);
             switch (type) {
             case 'pub':
                 pubSocket(client, addr)
@@ -134,7 +137,7 @@ function listen(server) {
             default:
                 client.send("Unknown socket type");
                 client.end();
-                sys.debug("Unknown socket type in: " + msg);
+                sys.log("Unknown socket type in: " + msg);
             }
         }
         

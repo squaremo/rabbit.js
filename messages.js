@@ -5,6 +5,9 @@ var Buffer = require('buffer').Buffer;
 var EventEmitter = require('events').EventEmitter;
 var sys = require('sys');
 
+var debug = (process.env['DEBUG_WIRE']) ?
+    function(msg) { sys.debug(msg) } : function() {};
+
 var LEN_SIZE = 4;
 function read_length(buffer) {
     return (buffer[0] << 24) +
@@ -63,11 +66,9 @@ function MessageStream(stream) {
         
         // no length yet
         if (self._waitlen == 0) {
-            sys.debug("No length");
             if (self._buflen + buffer.length >= LEN_SIZE) {
                 var buf = collapse_buffers(buffer);
                 self._waitlen = read_length(buf);
-                sys.debug("Length found:" + self._waitlen);
                 // special case for length 0; otherwise we'll look like
                 // we're waiting for a length again
                 if (self._waitlen == 0) {
@@ -81,13 +82,11 @@ function MessageStream(stream) {
         }
         // we're waiting for data
         else if (self._buflen + buffer.length >= self._waitlen) {
-            sys.debug("Enough data!");
             var buf = collapse_buffers(buffer);
             self.emit('message', buf.slice(0, self._waitlen));
             var used = self._waitlen;
             self._waitlen = 0;
             if (used < buf.length) {
-                sys.debug("Some left for next tick: " + used);
                 process.nextTick(function() {
                     read_message(buf.slice(used, buf.length));
                 });
@@ -100,7 +99,7 @@ function MessageStream(stream) {
     }
     stream.on('data', read_message);
 };
-require('sys').inherits(MessageStream, EventEmitter);
+sys.inherits(MessageStream, EventEmitter);
 
 MessageStream.prototype.send = function (message) {
     var len = message.length;
@@ -133,7 +132,7 @@ function MessageServer(server) {
         self.emit('disconnection', mstream);
     });
 }
-require('sys').inherits(MessageServer, EventEmitter);
+sys.inherits(MessageServer, EventEmitter);
 
 exports.MessageServer = MessageServer;
 
