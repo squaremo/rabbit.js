@@ -33,11 +33,12 @@
       var pub = new io.Socket(null, {transports: ['xhr-multipart', 'xhr-polling']});
       var sub = new io.Socket(null, {transports: ['xhr-multipart', 'xhr-polling']});
       
-      pub.connect();
-      pub.send('pub');
-
       sub.connect();
-      sub.send('sub');
+      sub.send('sub chat');
+
+      pub.connect();
+      pub.send('pub chat');
+
       sub.on('message', function(obj){
         message(obj);
       });

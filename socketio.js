@@ -32,6 +32,9 @@ send404 = function(res){
 };
 
 var socketserver = io.listen(server);
-socks.listen(socketserver);
+socks.listen(socketserver, {
+    'requests': ['rep', 'req'],
+    'chat': ['pub', 'sub']
+});
 
 server.listen(8080);

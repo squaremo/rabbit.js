@@ -9,9 +9,9 @@ var debug = (process.env['DEBUG']) ?
 function pubSocket(client, exchangeName) {
     sys.log('pub socket opened');
     var exchange = (exchangeName == '') ?
-        connection.exchange('amq.fanout') :
+        connection.exchange('amq.fanout', {'passive': true}) :
         connection.exchange(exchangeName,
-                            {'passive': true});
+                            {'type': 'fanout'});
     client.on('message', function(msg) {
         debug('pub:'); debug(msg);
         exchange.publish('', msg);
@@ -21,13 +21,15 @@ function pubSocket(client, exchangeName) {
 function subSocket(client, exchangeName) {
     sys.log('sub socket opened');
     var exchange = (exchangeName == '') ?
-        'amq.fanout' : exchangeName;
+        connection.exchange('amq.fanout', {'passive': 'true'}) :
+        connection.exchange(exchangeName,
+                            {'type': 'fanout'});
     var queue = connection.queue('');
     queue.subscribe(function(message) {
         debug('sub:'); debug(message);
         client.send(message.data);
     });
-    queue.bind(exchange, '');
+    queue.bind(exchange.name, '');
 }
 
 function pushSocket(client, queueName) {
@@ -64,7 +66,7 @@ function pullSocket(client, queueName) {
 }
 
 function reqSocket(client, queueName) {
-    sys.debug("req socket opened");
+    sys.log("req socket opened");
     if (queueName == '') {
         client.send("Must send address for req");
         client.end();
@@ -87,7 +89,7 @@ function reqSocket(client, queueName) {
 }
 
 function repSocket(client, queueName) {
-    sys.debug("rep socket opened");
+    sys.log("rep socket opened");
     if (queueName == '') {
         client.send("Must send address for req");
         client.end();
@@ -107,7 +109,7 @@ function repSocket(client, queueName) {
     });
 }
 
-function listen(server) {
+function listen(server, allowed) {
     server.on('connection', function (client) {
         function dispatch(msg) {
             client.removeListener('message', dispatch);
@@ -115,34 +117,46 @@ function listen(server) {
             var i = msg.indexOf(' ');
             var type = (i > -1) ? msg.substring(0, i) : msg;
             var addr = (i > -1) ? msg.substr(i+1) : '';
-            switch (type) {
-            case 'pub':
-                pubSocket(client, addr)
-                break;;
-            case 'sub':
-                subSocket(client, addr);
-                break;
-            case 'push':
-                pushSocket(client, addr);
-                break;
-            case 'pull':
-                pullSocket(client, addr);
-                break;
-            case 'req':
-                reqSocket(client, addr);
-                break;
-            case 'rep':
-                repSocket(client, addr);
-                break;
-            default:
-                client.send("Unknown socket type");
+            if (check_rendezvous(type, addr, allowed)) {
+                switch (type) {
+                case 'pub':
+                    pubSocket(client, addr)
+                    break;;
+                case 'sub':
+                    subSocket(client, addr);
+                    break;
+                case 'push':
+                    pushSocket(client, addr);
+                    break;
+                case 'pull':
+                    pullSocket(client, addr);
+                    break;
+                case 'req':
+                    reqSocket(client, addr);
+                    break;
+                case 'rep':
+                    repSocket(client, addr);
+                    break;
+                default:
+                    client.send("Unknown socket type");
+                    client.end();
+                    sys.log("Unknown socket type in: " + msg);
+                }
+            }
+            else {
+                client.send("Unauthorised rendezvous");
                 client.end();
-                sys.log("Unknown socket type in: " + msg);
+                sys.log("Access denied: " + type + " to " + addr);
             }
         }
-        
         client.on('message', dispatch);
     });
+}
+
+function check_rendezvous(type, addr, allowed) {
+    if (!allowed) return true; // no explicit list = everything goes
+    var socks = allowed[addr];
+    return socks && socks.indexOf(type) > -1
 }
 
 exports.listen = listen;
