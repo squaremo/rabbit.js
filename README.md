@@ -59,6 +59,13 @@ The rendezvous is optional for pub and sub sockets, which will use the
 unless you want all messages from all pub sockets going to all
 subscribed sockets).
 
+You can supply another argument to sockets.listen, which will be used
+for access control. It is simply a map of rendezvous names to allowed
+socket types; e.g.,
+
+    {'chat': ['pub', 'sub'],
+     'requests': ['req', 'rep']}
+
 You can interact with the socketserver via `MessageStream`s. Run the
 socketserver:
 
