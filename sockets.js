@@ -1,12 +1,11 @@
 var amqp = require('./node-amqp/');
 var sys = require('sys');
-
-var connection = amqp.createConnection({'host': '127.0.0.1', 'port': 5672});
+var EventEmitter = require('events').EventEmitter;
 
 var debug = (process.env['DEBUG']) ?
     function(msg) { sys.debug(msg) } : function() {};
 
-function pubSocket(client, exchangeName) {
+function pubSocket(connection, client, exchangeName) {
     sys.log('pub socket opened');
     var exchange = (exchangeName == '') ?
         connection.exchange('amq.fanout', {'passive': true}) :
@@ -18,7 +17,7 @@ function pubSocket(client, exchangeName) {
     });
 }
 
-function subSocket(client, exchangeName) {
+function subSocket(connection, client, exchangeName) {
     sys.log('sub socket opened');
     var exchange = (exchangeName == '') ?
         connection.exchange('amq.fanout', {'passive': 'true'}) :
@@ -32,7 +31,7 @@ function subSocket(client, exchangeName) {
     queue.bind(exchange.name, '');
 }
 
-function pushSocket(client, queueName) {
+function pushSocket(connection, client, queueName) {
     sys.log('push socket opened');
     if (queueName == '') {
         client.send("Must send address for push");
@@ -49,7 +48,7 @@ function pushSocket(client, queueName) {
     });
 }
 
-function pullSocket(client, queueName) {
+function pullSocket(connection, client, queueName) {
     sys.debug('pull socket opened');
     if (queueName == '') {
         client.send("Must send address for pull");
@@ -65,7 +64,7 @@ function pullSocket(client, queueName) {
     });
 }
 
-function reqSocket(client, queueName) {
+function reqSocket(connection, client, queueName) {
     sys.log("req socket opened");
     if (queueName == '') {
         client.send("Must send address for req");
@@ -88,7 +87,7 @@ function reqSocket(client, queueName) {
     });
 }
 
-function repSocket(client, queueName) {
+function repSocket(connection, client, queueName) {
     sys.log("rep socket opened");
     if (queueName == '') {
         client.send("Must send address for req");
@@ -107,49 +106,101 @@ function repSocket(client, queueName) {
         debug('request:'); debug(message);
         client.send(message.data);
     });
+    client.on('close', function() {
+        queue.destroy();
+        queue.close();
+    });
 }
 
-function listen(server, allowed) {
-    server.on('connection', function (client) {
-        function dispatch(msg) {
-            client.removeListener('message', dispatch);
-            msg = msg.toString();
-            var i = msg.indexOf(' ');
-            var type = (i > -1) ? msg.substring(0, i) : msg;
-            var addr = (i > -1) ? msg.substr(i+1) : '';
-            if (check_rendezvous(type, addr, allowed)) {
-                switch (type) {
-                case 'pub':
-                    pubSocket(client, addr)
-                    break;;
-                case 'sub':
-                    subSocket(client, addr);
-                    break;
-                case 'push':
-                    pushSocket(client, addr);
-                    break;
-                case 'pull':
-                    pullSocket(client, addr);
-                    break;
-                case 'req':
-                    reqSocket(client, addr);
-                    break;
-                case 'rep':
-                    repSocket(client, addr);
-                    break;
-                default:
-                    client.send("Unknown socket type");
+function Pipe() {
+    var fore = this.fore = new EventEmitter(); // client --> server
+    var aft = this.aft = new EventEmitter();   // server --> client
+    aft.send = function (msg) {
+        debug('aft send:'); debug(msg);
+        fore.emit('message', msg);
+    };
+    fore.send = function (msg) {
+        debug('fore send:'); debug(msg);
+        aft.emit('message', msg);
+    };
+    aft.end = function() {
+        aft.emit('close');
+    }
+    fore.end = function() {
+        fore.emit('close');
+    }
+    fore.on('close', function () {
+        debug('fore close');
+    });
+    aft.on('close', function () {
+        debug('aft close');
+    });
+}
+
+function PipeServer() {
+    EventEmitter.call(this);
+}
+
+(function(S) {
+    var P = S.prototype = new EventEmitter();
+
+    P.connect = function() {
+        var p = new Pipe();
+        this.emit('connection', p.aft);
+        return p.fore;
+    }
+    
+})(PipeServer);
+
+exports.Server = PipeServer;
+exports.Pipe = Pipe;
+
+function listen(server, allowed /* , callback */) {
+    var connection = amqp.createConnection({'host': '127.0.0.1', 'port': 5672});
+    var callback = (arguments.length > 2) ? arguments[2] : null;
+    connection.on('ready', function () {
+        server.on('connection', function (client) {
+            function dispatch(msg) {
+                client.removeListener('message', dispatch);
+                msg = msg.toString();
+                var i = msg.indexOf(' ');
+                var type = (i > -1) ? msg.substring(0, i) : msg;
+                var addr = (i > -1) ? msg.substr(i+1) : '';
+                if (check_rendezvous(type, addr, allowed)) {
+                    switch (type) {
+                    case 'pub':
+                        pubSocket(connection, client, addr)
+                        break;;
+                    case 'sub':
+                        subSocket(connection, client, addr);
+                        break;
+                    case 'push':
+                        pushSocket(connection, client, addr);
+                        break;
+                    case 'pull':
+                        pullSocket(connection, client, addr);
+                        break;
+                    case 'req':
+                        reqSocket(connection, client, addr);
+                        break;
+                    case 'rep':
+                        repSocket(connection, client, addr);
+                        break;
+                    default:
+                        client.send("Unknown socket type");
+                        client.end();
+                        sys.log("Unknown socket type in: " + msg);
+                    }
+                }
+                else {
+                    client.send("Unauthorised rendezvous");
                     client.end();
-                    sys.log("Unknown socket type in: " + msg);
+                    sys.log("Access denied: " + type + " to " + addr);
                 }
             }
-            else {
-                client.send("Unauthorised rendezvous");
-                client.end();
-                sys.log("Access denied: " + type + " to " + addr);
-            }
-        }
-        client.on('message', dispatch);
+            client.on('message', dispatch);
+        });
+        if (callback) callback();
     });
 }
 

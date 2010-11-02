@@ -37,4 +37,4 @@ socks.listen(socketserver, {
     'chat': ['pub', 'sub']
 });
 
-server.listen(8080);
+server.listen(8080, '0.0.0.0');
