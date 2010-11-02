@@ -82,6 +82,23 @@ then from another shell start node and create a couple of sockets:
     > s2.on('message', function(m) { console.log(m.toString()); });
     > s1.send('Hello world!');
 
+## Pipes
+
+<code>sockets.Server</code> is a server with a method for getting a
+connection to it.  This is useful if you want to program with sockets
+from inside node.
+
+    $ node
+    > var socks = new require('./sockets');
+    > var serv = new socks.Server();
+    > socks.listen(serv); // the ff not a callback for readability
+    > var pub = serv.connect();
+    > pub.send('pub');
+    > var sub = serv.connect();
+    > sub.send('sub');
+    > sub.on('message', function(m) {console.log(m);});
+    > pub.send('Hello world!');
+
 ## rabbit.js and Socket.IO
 
 `MessageStream` is designed to look just like Socket.IO's `Client`
@@ -90,9 +107,9 @@ you clone Socket.IO-node in the working directory, run `node
 socketio.js`, then point your browser at `http://localhost:8080/`
 you'll get a familiar demo, this time running through RabbitMQ.
 
-You can also mix this with the socket server above, since they are
-both sending messages through RabbitMQ; or, with an AMQP client (note
--- the pub/sub sockets use the exchange amq.fanout by default).
+You can also mix this with the socket or pipe server above, since they
+are both sending messages through RabbitMQ; or, with an AMQP client
+(note -- the pub/sub sockets use the exchange amq.fanout by default).
 
 <a name="running"></a>
 ## Getting it running
