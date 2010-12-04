@@ -26,7 +26,7 @@ function subSocket(connection, client, exchangeName) {
     var queue = connection.queue('');
     queue.subscribe(function(message) {
         debug('sub:'); debug(message);
-        client.send(message.data);
+        client.send(message.data.toString());
     });
     queue.bind(exchange.name, '');
 }
@@ -60,7 +60,7 @@ function pullSocket(connection, client, queueName) {
                                              'exclusive': false});
     queue.subscribe(function(message) {
         debug('pull:'); debug(message);
-        client.send(message.data);
+        client.send(message.data.toString());
     });
 }
 
@@ -78,7 +78,7 @@ function reqSocket(connection, client, queueName) {
                                                     'autoDelete': false});
     replyQueue.subscribe(function(message) {
         debug('reply:'); debug(message);
-        client.send(message.data);
+        client.send(message.data.toString());
     });
     client.on('message', function(message) {
         debug('request:'); debug(message);
@@ -104,7 +104,7 @@ function repSocket(connection, client, queueName) {
     queue.subscribe(function(message) {
         replyTo = message._properties.replyTo;
         debug('request:'); debug(message);
-        client.send(message.data);
+        client.send(message.data.toString());
     });
     client.on('close', function() {
         queue.destroy();
