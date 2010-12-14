@@ -5,6 +5,8 @@ var io = require('./Socket.IO-node/lib/socket.io');
 var sys = require('sys');
 var socks = require('./sockets.js');
 
+var port = (process.argv.length > 2) ? process.argv[2] : 8080 ;
+
 var server = http.createServer(function (req, res) {
 	var path = url.parse(req.url).pathname;
 	switch (path){
@@ -37,4 +39,4 @@ socks.listen(socketserver, {
     'chat': ['pub', 'sub']
 });
 
-server.listen(8080, '0.0.0.0');
+server.listen(port, '0.0.0.0');
