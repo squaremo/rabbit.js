@@ -102,10 +102,14 @@ from inside node.
 ## rabbit.js and Socket.IO
 
 `MessageStream` is designed to look just like Socket.IO's `Client`
-class, and `sockets.listen()` will happily wrap a Socket.IO server. If
-you clone Socket.IO-node in the working directory, run `node
-socketio.js`, then point your browser at `http://localhost:8080/`
-you'll get a familiar demo, this time running through RabbitMQ.
+class, and `sockets.listen()` will happily wrap a Socket.IO
+server. npm should install Socket.IO; or, install using
+
+    $ npm bundle install socket.io
+
+Then run `node socketio.js`, and point your browser at
+`http://localhost:8080/` you'll get a familiar demo, this time running
+through RabbitMQ.
 
 You can also mix this with the socket or pipe server above, since they
 are both sending messages through RabbitMQ; or, with an AMQP client
@@ -116,11 +120,7 @@ are both sending messages through RabbitMQ; or, with an AMQP client
 
 For the minute you need my fork of node-amqp:
 
-    rabbit.js$ git clone http://github.com/squaremo/node-amqp.git
-
-If you want to run the Socket.IO demo, grab that too:
-
-    rabbit.js$ git clone http://github.com/LearnBoost/Socket.IO-node.git --recursive
+    rabbit.js$ npm bundle install https://github.com/squaremo/node-amqp/tarball/master
 
 You also need RabbitMQ, of course. Follow the [installation
 instructions](http://www.rabbitmq.com/install.html), or if you
