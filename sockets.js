@@ -1,4 +1,4 @@
-var amqp = require('./node-amqp/');
+var amqp = require('amqp');
 var sys = require('sys');
 var EventEmitter = require('events').EventEmitter;
 
