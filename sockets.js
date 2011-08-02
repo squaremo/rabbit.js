@@ -153,14 +153,17 @@ function PipeServer() {
         this.emit('connection', p.aft);
         return p.fore;
     }
-    
+
 })(PipeServer);
 
 exports.Server = PipeServer;
 exports.Pipe = Pipe;
 
-function listen(server, allowed /* , callback */) {
-    var connection = amqp.createConnection({'host': '127.0.0.1', 'port': 5672});
+function listen(server, options /* , callback */) {
+    var url = options && options.url || 'amqp://localhost';
+    var allowed = options && options.allowed;
+
+    var connection = amqp.createConnection({'url': url});
     var callback = (arguments.length > 2) ? arguments[2] : null;
     connection.on('ready', function () {
         server.on('connection', function (client) {

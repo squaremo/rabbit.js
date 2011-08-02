@@ -60,12 +60,17 @@ The rendezvous is optional for pub and sub sockets, which will use the
 unless you want all messages from all pub sockets going to all
 subscribed sockets).
 
-You can supply another argument to `sockets.listen()`, which will be used
-for access control. It is simply a map of rendezvous names to allowed
-socket types; e.g.,
+You can supply an `allowed` option to `sockets.listen()`, which will
+be used for access control. It is simply a map of rendezvous names to
+allowed socket types; e.g.,
 
-    {'chat': ['pub', 'sub'],
-     'requests': ['req', 'rep']}
+    $ sockets.listen(svr, {allowed: {'chat': ['pub', 'sub'],
+                                     'requests': ['req', 'rep']}});
+
+The option `url` takes an [AMQP
+URL](http://rdoc.info/github/ruby-amqp/amqp/master/file/docs/ConnectingToTheBroker.textile#Using_connection_strings)
+for connection to RabbitMQ. It defaults to a server running on
+localhost.
 
 You can interact with the socketserver via `MessageStream`s. Run the
 socketserver:
