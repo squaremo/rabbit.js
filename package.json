@@ -15,7 +15,7 @@
     "node": "*"
   },
   "dependencies": {
-    "amqp": ">=0.0.2",
-    "socket.io": "*"
+    "amqp": ">=0.1.0",
+    "socket.io": "0.6.17"
   }
 }
