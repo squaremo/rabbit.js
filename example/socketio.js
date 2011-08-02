@@ -1,9 +1,11 @@
+require.paths.unshift('.');
+
 var http = require('http');
 var url = require('url');
 var fs = require('fs');
 var io = require('socket.io');
 var sys = require('sys');
-var socks = require('./sockets.js');
+var socks = require('sockets');
 
 var server = http.createServer(function (req, res) {
 	var path = url.parse(req.url).pathname;
