@@ -109,8 +109,11 @@ from inside node.
 
 `MessageStream` is designed to look just like Socket.IO's `Client`
 class, and `sockets.listen()` will happily wrap a Socket.IO
-server. npm should install Socket.IO, or you can use the bundle given
-in package.json.
+server. npm should install Socket.IO:
+
+    $ npm install socket.io@0.6.17
+
+(that's socket.io from before it decided to become a framework)
 
 Run `node example/socketio.js`, and point your browser at
 `http://localhost:8080/` you'll get a familiar demo, this time running
@@ -126,6 +129,7 @@ are both sending messages through RabbitMQ; or, with an AMQP client
 In the repo directory, get the dependencies:
 
     rabbit.js$ npm bundle
+    rabbit.js$ npm install socket.io@0.6.17
 
 You also need RabbitMQ, of course. Follow the [installation
 instructions](http://www.rabbitmq.com/install.html), or if you
