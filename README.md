@@ -128,7 +128,7 @@ are both sending messages through RabbitMQ; or, with an AMQP client
 
 In the repo directory, get the dependencies:
 
-    rabbit.js$ npm bundle
+    rabbit.js$ npm install
     rabbit.js$ npm install socket.io@0.6.17
 
 You also need RabbitMQ, of course. Follow the [installation
