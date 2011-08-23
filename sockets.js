@@ -1,4 +1,4 @@
-var amqp = require('./node-amqp/');
+var amqp = require('amqp');
 var sys = require('sys');
 var EventEmitter = require('events').EventEmitter;
 
@@ -7,28 +7,30 @@ var debug = (process.env['DEBUG']) ?
 
 function pubSocket(connection, client, exchangeName) {
     sys.log('pub socket opened');
-    var exchange = (exchangeName == '') ?
-        connection.exchange('amq.fanout', {'passive': true}) :
-        connection.exchange(exchangeName,
-                            {'type': 'fanout'});
-    client.on('message', function(msg) {
-        debug('pub:'); debug(msg);
-        exchange.publish('', msg);
-    });
+    function publishTo(exchange) {
+        client.on('message', function(msg) {
+            exchange.publish('', msg);
+        });
+    }
+    (exchangeName == '') ?
+        connection.exchange('amq.fanout', {'passive': true}, publishTo) :
+        connection.exchange(exchangeName, {'type': 'fanout'}, publishTo);
 }
 
 function subSocket(connection, client, exchangeName) {
     sys.log('sub socket opened');
-    var exchange = (exchangeName == '') ?
-        connection.exchange('amq.fanout', {'passive': 'true'}) :
-        connection.exchange(exchangeName,
-                            {'type': 'fanout'});
-    var queue = connection.queue('');
-    queue.subscribe(function(message) {
-        debug('sub:'); debug(message);
-        client.send(message.data.toString());
-    });
-    queue.bind(exchange.name, '');
+    function consume(exchange) {
+        queue = connection.queue('', {durable:false}, function() {
+            queue.subscribe(function(message) {
+                debug('sub:'); debug(message);
+                client.send(message.data.toString());
+            });
+            queue.bind(exchange.name, '');
+        });
+    };
+    (exchangeName == '') ?
+        connection.exchange('amq.fanout', {'passive': true}, consume) :
+        connection.exchange(exchangeName, {'type': 'fanout'}, consume);
 }
 
 function pushSocket(connection, client, queueName) {
@@ -41,10 +43,9 @@ function pushSocket(connection, client, queueName) {
     var queue = connection.queue(queueName, {'autoDelete': false,
                                              'durable': true,
                                              'exclusive': false});
-    var exchange = connection.exchange('');
     client.on('message', function(msg) {
         debug('push:'); debug(msg);
-        exchange.publish(queueName, msg);
+        connection.publish(queueName, msg);
     });
 }
 
@@ -55,13 +56,15 @@ function pullSocket(connection, client, queueName) {
         client.end();
         return;
     }
-    var queue = connection.queue(queueName, {'autoDelete': false,
-                                             'durable': true,
-                                             'exclusive': false});
-    queue.subscribe(function(message) {
-        debug('pull:'); debug(message);
-        client.send(message.data.toString());
-    });
+    var queue = connection.queue(
+        queueName,
+        {'autoDelete': false, 'durable': true, 'exclusive': false},
+        function() {
+            queue.subscribe(function(message) {
+                debug('pull:'); debug(message);
+                client.send(message.data.toString());
+            });
+        });
 }
 
 function reqSocket(connection, client, queueName) {
@@ -71,20 +74,23 @@ function reqSocket(connection, client, queueName) {
         client.end();
         return;
     }
-    var replyQueue = connection.queue('', {'exclusive': true,
-                                           'autoDelete': true,
-                                           'durable': false});
-    var requestQueue = connection.queue(queueName, {'durable': true,
-                                                    'autoDelete': false});
-    replyQueue.subscribe(function(message) {
-        debug('reply:'); debug(message);
-        client.send(message.data.toString());
-    });
-    client.on('message', function(message) {
-        debug('request:'); debug(message);
-        connection.publish(queueName, message,
-                           {'replyTo': replyQueue.name});
-    });
+    connection.queue('',
+        {'exclusive': true, 'autoDelete': true, 'durable': false},
+        function(replyQueue) {
+            replyQueue.subscribe(function(message) {
+                debug('reply:'); debug(message);
+                client.send(message.data.toString());
+            });
+            connection.queue(
+                queueName, {'durable': true, 'autoDelete': false},
+                function(queue) {
+                    client.on('message', function(message) {
+                        debug('request:'); debug(message);
+                        connection.publish(queueName, message,
+                                           {'replyTo': replyQueue.name});
+                    });
+                });
+        });
 }
 
 function repSocket(connection, client, queueName) {
@@ -94,22 +100,20 @@ function repSocket(connection, client, queueName) {
         client.end();
         return;
     }
-    var queue = connection.queue(queueName, {'durable': true,
-                                             'autoDelete': false});
-    var replyTo = '';
-    client.on('message', function (message) {
-        debug('reply:'); debug(message);
-        connection.publish(replyTo, message);
-    });
-    queue.subscribe(function(message) {
-        replyTo = message._properties.replyTo;
-        debug('request:'); debug(message);
-        client.send(message.data.toString());
-    });
-    client.on('close', function() {
-        queue.destroy();
-        queue.close();
-    });
+    connection.queue(
+        queueName, {'durable': true, 'autoDelete': false},
+        function(queue) {
+            var replyTo = '';
+            client.on('message', function (message) {
+                debug('reply to: ' + replyTo); debug(message);
+                connection.publish(replyTo, message);
+            });
+            queue.subscribe(function(message, _headers, properties) {
+                replyTo = properties['replyTo'];
+                debug('request:'); debug(message);
+                client.send(message.data.toString());
+            });
+        });
 }
 
 function Pipe() {
@@ -149,14 +153,17 @@ function PipeServer() {
         this.emit('connection', p.aft);
         return p.fore;
     }
-    
+
 })(PipeServer);
 
 exports.Server = PipeServer;
 exports.Pipe = Pipe;
 
-function listen(server, allowed /* , callback */) {
-    var connection = amqp.createConnection({'host': '127.0.0.1', 'port': 5672});
+function listen(server, options /* , callback */) {
+    var url = options && options.url || 'amqp://localhost';
+    var allowed = options && options.allowed;
+
+    var connection = amqp.createConnection({'url': url});
     var callback = (arguments.length > 2) ? arguments[2] : null;
     connection.on('ready', function () {
         server.on('connection', function (client) {

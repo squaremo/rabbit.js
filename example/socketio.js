@@ -1,11 +1,11 @@
+require.paths.unshift('.');
+
 var http = require('http');
 var url = require('url');
 var fs = require('fs');
-var io = require('./Socket.IO-node/lib/socket.io');
+var io = require('socket.io');
 var sys = require('sys');
-var socks = require('./sockets.js');
-
-var port = (process.argv.length > 2) ? process.argv[2] : 8080 ;
+var socks = require('sockets');
 
 var server = http.createServer(function (req, res) {
 	var path = url.parse(req.url).pathname;
@@ -34,9 +34,9 @@ send404 = function(res){
 };
 
 var socketserver = io.listen(server);
-socks.listen(socketserver, {
-    'requests': ['rep', 'req'],
-    'chat': ['pub', 'sub']
-});
+socks.listen(socketserver,
+             {allowed:{
+                 'requests': ['rep', 'req'],
+                 'chat': ['pub', 'sub']}});
 
-server.listen(port, '0.0.0.0');
+server.listen(8080, '0.0.0.0');
