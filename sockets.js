@@ -27,6 +27,9 @@ function subSocket(connection, client, exchangeName) {
             });
             queue.bind(exchange.name, '');
         });
+        client.on('close', function() {
+            queue.destroy();
+        });
     };
     (exchangeName == '') ?
         connection.exchange('amq.fanout', {'passive': true}, consume) :
@@ -40,29 +43,35 @@ function pushSocket(connection, client, queueName) {
         client.end();
         return;
     }
-    var queue = connection.queue(queueName, {'autoDelete': false,
-                                             'durable': true,
-                                             'exclusive': false});
-    client.on('message', function(msg) {
-        debug('push:'); debug(msg);
-        connection.publish(queueName, msg);
-    });
+    connection.queue(
+        queueName, {'autoDelete': false,
+                    'durable': true,
+                    'exclusive': false},
+        function(queue) {
+            client.on('message', function(msg) {
+                debug('push:'); debug(msg);
+                connection.publish(queueName, msg);
+            });
+        });
 }
 
 function pullSocket(connection, client, queueName) {
-    sys.debug('pull socket opened');
+    sys.log('pull socket opened');
     if (queueName == '') {
         client.send("Must send address for pull");
         client.end();
         return;
     }
-    var queue = connection.queue(
+    connection.queue(
         queueName,
         {'autoDelete': false, 'durable': true, 'exclusive': false},
-        function() {
+        function(queue) {
             queue.subscribe(function(message) {
                 debug('pull:'); debug(message);
                 client.send(message.data.toString());
+            });
+            client.on('close', function() {
+                // oh. no unsubscribe in node-amqp.
             });
         });
 }
@@ -89,6 +98,9 @@ function reqSocket(connection, client, queueName) {
                         connection.publish(queueName, message,
                                            {'replyTo': replyQueue.name});
                     });
+                    client.on('close', function() {
+                        replyQueue.destroy();
+                    });
                 });
         });
 }
@@ -112,6 +124,9 @@ function repSocket(connection, client, queueName) {
                 replyTo = properties['replyTo'];
                 debug('request:'); debug(message);
                 client.send(message.data.toString());
+            });
+            client.on('close', function() {
+                // Again, no unsubscribe.
             });
         });
 }
