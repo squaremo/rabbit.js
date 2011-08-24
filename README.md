@@ -43,10 +43,7 @@ instead of streams for connections.
 ## sockets
 
 The module `sockets.js` wraps a message server to speak the messaging
-patterns using RabbitMQ.  The file `examples/socketserver.js` shows
-how to do this with a regular net.Server by wrapping it first in a
-`MessageServer`, then using `sockets.listen()`. You need RabbitMQ to
-be running for this to work of course.
+patterns using RabbitMQ.
 
 The sockets need a tiny bit of protocol on connection; the first
 message sent must be the intended socket type -- one of 'pub', 'sub',
@@ -72,22 +69,6 @@ URL](http://rdoc.info/github/ruby-amqp/amqp/master/file/docs/ConnectingToTheBrok
 for connection to RabbitMQ. It defaults to a server running on
 localhost.
 
-You can interact with the socketserver via `MessageStream`s. Run the
-socketserver:
-
-    $ node example/socketserver.js
-
-then from another shell start node and create a couple of sockets:
-
-    $ node
-    > var msg = require('./messages'), net = require('net');
-    > s1 = new msg.MessageStream(net.createConnection(9000));
-    > s1.send('pub');
-    > s2 = new msg.MessageStream(net.createConnection(9000));
-    > s2.send('sub');
-    > s2.on('message', function(m) { console.log(m.toString()); });
-    > s1.send('Hello world!');
-
 ## sockets.Server (pipes)
 
 <code>sockets.Server</code> is a server with a method for getting a
@@ -95,7 +76,7 @@ connection to it.  This is useful if you want to program with sockets
 from inside node.
 
     $ node
-    > var socks = new require('./sockets');
+    > var socks = new require('sockets');
     > var serv = new socks.Server();
     > socks.listen(serv); // the ff not a callback for readability
     > var pub = serv.connect();
@@ -105,7 +86,32 @@ from inside node.
     > sub.on('message', function(m) {console.log(m);});
     > pub.send('Hello world!');
 
-## rabbit.js and Socket.IO
+## Examples
+
+### Socket server
+
+The file example/socketserver.js demonstrates using the pipe server
+with regular net.createServer.
+
+It creates two socket servers, one for incoming messages and one for
+outgoing messages. It then hooks these up through a pipe server -- a
+`sockets.Server` -- using push and pull connections.
+
+To play:
+
+    $ node example/socketserver.js &
+    $ nc localhost 5001
+
+and in another term:
+
+    $ nc localhost 5002
+
+If you type in the first term it comes out the second. If you open
+another term and connect to 5002, you'll find that messages are
+round-robined among the outputs; if you open another connection to
+5001 you'll find it also sends to one of the outputs.
+
+### rabbit.js and Socket.IO
 
 `MessageStream` is designed to look just like Socket.IO's `Client`
 class, and `sockets.listen()` will happily wrap a Socket.IO
@@ -124,7 +130,7 @@ are both sending messages through RabbitMQ; or, with an AMQP client
 (note -- the pub/sub sockets use the exchange amq.fanout by default).
 
 <a name="running"></a>
-## Getting it running
+## Getting something running
 
 In the repo directory, get the dependencies:
 
