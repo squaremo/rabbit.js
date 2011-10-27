@@ -111,6 +111,20 @@ another term and connect to 5002, you'll find that messages are
 round-robined among the outputs; if you open another connection to
 5001 you'll find it also sends to one of the outputs.
 
+### rabbit.js and SockJS
+
+`sockets.listen()` can adapt itself to a SockJS server. There is a
+simple example given in `example/sockjs.js`. npm will install SockJS
+for you:
+
+    $ npm install sockjs
+
+Run `node example/sockjs.js` and point your browser at
+`http://localhost:8080` to see the example in action.
+
+You can of course mix SockJS with message server or pipes described
+above.
+
 ### rabbit.js and Socket.IO
 
 `MessageStream` is designed to look just like Socket.IO's `Client`
