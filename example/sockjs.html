@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <title>SockJS example</title>
+    <script src="http://cdn.sockjs.org/sockjs-0.1.min.js"></script>
+  </head>
+  <body>
+    <script>
+      var sock = new SockJS("http://localhost:8080/socks");
+      sock.onopen = function() {
+        sock.send('req questions');
+      }
+      sock.onmessage = function(msg) {
+        document.getElementById('out').value = msg.data;
+      };
+
+      function send() {
+        var msg = document.getElementById('in').value;
+        sock.send(msg);
+      }
+    </script>
+    <p>
+      Entering a value in the left-hand box below and submitting the form sends
+      the value to the server, which will helpfully uppercase it
+      before sending it back to be shown in the right-hand box.
+    </p>
+    <form onsubmit="send(); return false;">
+      <input id="in" type="text"/>
+      <input type="submit" value="Send"/>
+      <input id="out" type="text" disabled="true"/>
+    </form>
+  </body>
+</html>

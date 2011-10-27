@@ -5,10 +5,25 @@ var EventEmitter = require('events').EventEmitter;
 var debug = (process.env['DEBUG']) ?
     function(msg) { sys.debug(msg) } : function() {};
 
+debug('on');
+
+// SocketIO likes 'message', SockJS likes 'data'.
+// Nothing likes both, so far ..
+function onmsg(client, handler) {
+    client.on('message', handler);
+    client.on('data', handler);
+}
+
+function sendfun(client) {
+    return ('send' in client) ?
+        function(msg) { return client.send(msg); } :
+        function(msg) { return client.write(msg); } ;
+}
+
 function pubSocket(connection, client, exchangeName) {
     sys.log('pub socket opened');
     function publishTo(exchange) {
-        client.on('message', function(msg) {
+        onmsg(client, function(msg) {
             exchange.publish('', msg);
         });
     }
@@ -19,11 +34,12 @@ function pubSocket(connection, client, exchangeName) {
 
 function subSocket(connection, client, exchangeName) {
     sys.log('sub socket opened');
+    var send = sendfun(client);
     function consume(exchange) {
         queue = connection.queue('', {durable:false}, function() {
             queue.subscribe(function(message) {
                 debug('sub:'); debug(message);
-                client.send(message.data.toString());
+                send(message.data.toString());
             });
             queue.bind(exchange.name, '');
         });
@@ -38,8 +54,9 @@ function subSocket(connection, client, exchangeName) {
 
 function pushSocket(connection, client, queueName) {
     sys.log('push socket opened');
+    var send = sendfun(client);
     if (queueName == '') {
-        client.send("Must send address for push");
+        send("Must send address for push");
         client.end();
         return;
     }
@@ -48,7 +65,7 @@ function pushSocket(connection, client, queueName) {
                     'durable': true,
                     'exclusive': false},
         function(queue) {
-            client.on('message', function(msg) {
+            onmsg(client, function(msg) {
                 debug('push:'); debug(msg);
                 connection.publish(queueName, msg);
             });
@@ -57,8 +74,9 @@ function pushSocket(connection, client, queueName) {
 
 function pullSocket(connection, client, queueName) {
     sys.log('pull socket opened');
+    var send = sendfun(client);
     if (queueName == '') {
-        client.send("Must send address for pull");
+        send("Must send address for pull");
         client.end();
         return;
     }
@@ -68,7 +86,7 @@ function pullSocket(connection, client, queueName) {
         function(queue) {
             queue.subscribe(function(message) {
                 debug('pull:'); debug(message);
-                client.send(message.data.toString());
+                send(message.data.toString());
             });
             client.on('close', function() {
                 // oh. no unsubscribe in node-amqp.
@@ -78,8 +96,9 @@ function pullSocket(connection, client, queueName) {
 
 function reqSocket(connection, client, queueName) {
     sys.log("req socket opened");
+    var send = sendfun(client);
     if (queueName == '') {
-        client.send("Must send address for req");
+        send("Must send address for req");
         client.end();
         return;
     }
@@ -88,12 +107,12 @@ function reqSocket(connection, client, queueName) {
         function(replyQueue) {
             replyQueue.subscribe(function(message) {
                 debug('reply:'); debug(message);
-                client.send(message.data.toString());
+                send(message.data.toString());
             });
             connection.queue(
                 queueName, {'durable': true, 'autoDelete': false},
                 function(queue) {
-                    client.on('message', function(message) {
+                    onmsg(client, function(message) {
                         debug('request:'); debug(message);
                         connection.publish(queueName, message,
                                            {'replyTo': replyQueue.name});
@@ -107,8 +126,9 @@ function reqSocket(connection, client, queueName) {
 
 function repSocket(connection, client, queueName) {
     sys.log("rep socket opened");
+    var send = sendfun(client);
     if (queueName == '') {
-        client.send("Must send address for req");
+        send("Must send address for req");
         client.end();
         return;
     }
@@ -116,14 +136,14 @@ function repSocket(connection, client, queueName) {
         queueName, {'durable': true, 'autoDelete': false},
         function(queue) {
             var replyTo = '';
-            client.on('message', function (message) {
+            onmsg(client, function (message) {
                 debug('reply to: ' + replyTo); debug(message);
                 connection.publish(replyTo, message);
             });
             queue.subscribe(function(message, _headers, properties) {
                 replyTo = properties['replyTo'];
                 debug('request:'); debug(message);
-                client.send(message.data.toString());
+                send(message.data.toString());
             });
             client.on('close', function() {
                 // Again, no unsubscribe.
@@ -181,9 +201,11 @@ function listen(server, options /* , callback */) {
     var connection = amqp.createConnection({'url': url});
     var callback = (arguments.length > 2) ? arguments[2] : null;
     connection.on('ready', function () {
+        debug('AMQP connection established');
         server.on('connection', function (client) {
             function dispatch(msg) {
                 client.removeListener('message', dispatch);
+                client.removeListener('data', dispatch);
                 msg = msg.toString();
                 var i = msg.indexOf(' ');
                 var type = (i > -1) ? msg.substring(0, i) : msg;
@@ -220,7 +242,7 @@ function listen(server, options /* , callback */) {
                     sys.log("Access denied: " + type + " to " + addr);
                 }
             }
-            client.on('message', dispatch);
+            onmsg(client, dispatch);
         });
         if (callback) callback();
     });
