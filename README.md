@@ -1,9 +1,9 @@
 # Messaging with Node.js and RabbitMQ
 
-  $ npm install rabbit.js
+    $ npm install rabbit.js
 
 This library implements messaging patterns in
-[node.js](http://nodejs.org/)), using
+[node.js](http://nodejs.org/), using
 [RabbitMQ](http://www.rabbitmq.com/).
 
 You can use it as a gateway between socket servers in node.js (e.g.,
