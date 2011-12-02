@@ -1,10 +1,7 @@
-require.paths.unshift('.');
-
 var http = require('http');
 var url = require('url');
 var fs = require('fs');
 var sockjs = require('sockjs');
-var sys = require('sys');
 var sockets = require('sockets');
 
 // Create a web server on which we'll serve our demo page, and listen

@@ -1,7 +1,7 @@
 {
   "name": "rabbit.js",
   "description": "Idiomatic messaging for browsers, using RabbitMQ",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "homepage": "http://github.com/squaremo/rabbit.js",
   "repository": {
     "type": "git",
@@ -9,10 +9,10 @@
   },
   "author": "Michael Bridgen",
   "directories": {
-    "lib": "."
+    "lib": "lib"
   },
   "engines": {
-    "node": "*"
+    "node": ">=0.6"
   },
   "dependencies": {
     "amqp": ">=0.1.0"

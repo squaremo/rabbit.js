@@ -1,5 +1,3 @@
-require.paths.unshift('.');
-
 var net = require('net'),
     messages = require('messages'),
     sockets = require('sockets');

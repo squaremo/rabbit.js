@@ -1,5 +1,7 @@
 # Messaging with Node.js and RabbitMQ
 
+  $ npm install rabbit.js
+
 This library implements messaging patterns in
 [node.js](http://nodejs.org/)), using
 [RabbitMQ](http://www.rabbitmq.com/).
@@ -11,8 +13,8 @@ sockets.
 As an example of the first, you might use it to distribute events from
 a backend system, through RabbitMQ, to browser clients.
 
-As an example of the second, you might use it to allow browser clients
-to communicate among themselves.
+As an example of the second, you might use it to allow node.js
+instances to communicate among themselves.
 
 There are three messaging patterns supported, following
 [ZeroMQ](http://zeromq.org/) and the [RabbitMQ/ZeroMQ
@@ -30,9 +32,11 @@ bridge](http://github.com/rabbitmq/rmq-0mq/):
    messages are distributed among the pull sockets connected to the
    rendezvous point.
 
-(<a href="#running">Skip to "Getting it running"</a>)
+(<a href="#running">Skip to "Getting something running"</a>)
 
 ## messages.MessageStream and messages.MessageServer
+
+    var msgs = require('rabbit.js/lib/messages');
 
 These classes are used to decorate byte streams (e.g., `net.Stream`) and
 servers (e.g., `net.Server`) respectively. `MessageStream` simply
@@ -41,6 +45,8 @@ messages. `MessageServer` wraps a server to provide `MessageStreams`
 instead of streams for connections.
 
 ## sockets
+
+    var sockets = require('rabbit.js/lib/sockets');
 
 The module `sockets.js` wraps a message server to speak the messaging
 patterns using RabbitMQ.
@@ -62,7 +68,7 @@ be used for access control. It is simply a map of rendezvous names to
 allowed socket types; e.g.,
 
     $ sockets.listen(svr, {allowed: {'chat': ['pub', 'sub'],
-                                     'requests': ['req', 'rep']}});
+                                   'requests': ['req', 'rep']}});
 
 The option `url` takes an [AMQP
 URL](http://rdoc.info/github/ruby-amqp/amqp/master/file/docs/ConnectingToTheBroker.textile#Using_connection_strings)
@@ -76,9 +82,9 @@ connection to it.  This is useful if you want to program with sockets
 from inside node.
 
     $ node
-    > var socks = new require('sockets');
-    > var serv = new socks.Server();
-    > socks.listen(serv); // the ff not a callback for readability
+    > var sockets = new require('rabbit.js/lib/sockets');
+    > var serv = new sockets.Server();
+    > sockets.listen(serv); // the ff not a callback for readability
     > var pub = serv.connect();
     > pub.send('pub');
     > var sub = serv.connect();
@@ -87,6 +93,9 @@ from inside node.
     > pub.send('Hello world!');
 
 ## Examples
+
+NB The examples run from the source directory and don't use an
+'installed' rabbit.js.
 
 ### Socket server
 
@@ -99,8 +108,8 @@ outgoing messages. It then hooks these up through a pipe server -- a
 
 To play:
 
-    $ node example/socketserver.js &
-    $ nc localhost 5001
+    rabbit.js$ NODE_PATH=lib node example/socketserver.js &
+    rabbit.js$ nc localhost 5001
 
 and in another term:
 
@@ -117,9 +126,9 @@ round-robined among the outputs; if you open another connection to
 simple example given in `example/sockjs.js`. npm will install SockJS
 for you:
 
-    $ npm install sockjs
+    rabbit.js$ npm install sockjs
 
-Run `node example/sockjs.js` and point your browser at
+Run `NODE_PATH=lib node example/sockjs.js` and point your browser at
 `http://localhost:8080` to see the example in action.
 
 You can of course mix SockJS with message server or pipes described
@@ -131,11 +140,11 @@ above.
 class, and `sockets.listen()` will happily wrap a Socket.IO
 server. npm should install Socket.IO:
 
-    $ npm install socket.io@0.6.17
+    rabbit.js$ npm install socket.io@0.6.18
 
 (that's socket.io from before it decided to become a framework)
 
-Run `node example/socketio.js`, and point your browser at
+Run `NODE_PATH=lib node example/socketio.js`, and point your browser at
 `http://localhost:8080/` you'll get a familiar demo, this time running
 through RabbitMQ.
 
@@ -146,10 +155,9 @@ are both sending messages through RabbitMQ; or, with an AMQP client
 <a name="running"></a>
 ## Getting something running
 
-In the repo directory, get the dependencies:
+In the source directory, get the dependencies:
 
     rabbit.js$ npm install
-    rabbit.js$ npm install socket.io@0.6.17
 
 You also need RabbitMQ, of course. Follow the [installation
 instructions](http://www.rabbitmq.com/install.html), or if you
@@ -161,6 +169,7 @@ use homebrew just do
 
 Now you can run the examples, e.g.,
 
-    $ node examples/socketio.js
+    rabbit.js$ npm install sockjs
+    rabbit.js$ NODE_PATH=lib node examples/sockjs.js
 
 (and browse to http://localhost:8080/)
