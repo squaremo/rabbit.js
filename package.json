@@ -1,16 +1,17 @@
 {
   "name": "rabbit.js",
-  "description": "Idiomatic messaging for browsers, using RabbitMQ",
-  "version": "0.1.2",
+  "description": "Easy stream-based messaging using RabbitMQ",
+  "version": "0.2.0",
   "homepage": "http://github.com/squaremo/rabbit.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/squaremo/rabbit.js.git"
   },
-  "author": "Michael Bridgen",
+  "author": "Michael Bridgen <mikeb@squaremobius.net>",
   "directories": {
     "lib": "lib"
   },
+  "main": "./index",
   "engines": {
     "node": ">=0.6"
   },
