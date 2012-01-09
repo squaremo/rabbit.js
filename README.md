@@ -1,175 +1,173 @@
-# Messaging with Node.js and RabbitMQ
+# Messaging in Node.JS with RabbitMQ
 
     $ npm install rabbit.js
 
-This library implements messaging patterns in
+This library presents a simple, socket-oriented API* for messaging in
 [node.js](http://nodejs.org/), using
-[RabbitMQ](http://www.rabbitmq.com/).
+[RabbitMQ](http://www.rabbitmq.com/) as a backend.
 
-You can use it as a gateway between socket servers in node.js (e.g.,
-Socket.IO or net.Server) and RabbitMQ, or as an intermediary for
-sockets.
+    var context = require('rabbit.js').createContext();
+    var pub = context.socket('PUB'), sub = context.socket('SUB');
+    sub.pipe(process.stdout);
+    sub.connect('events');
 
-As an example of the first, you might use it to distribute events from
-a backend system, through RabbitMQ, to browser clients.
+    pub.connect('events');
+    pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
 
-As an example of the second, you might use it to allow node.js
-instances to communicate among themselves.
 
-There are three messaging patterns supported, following
-[ZeroMQ](http://zeromq.org/) and the [RabbitMQ/ZeroMQ
-bridge](http://github.com/rabbitmq/rmq-0mq/):
+*Yes, rather like ZeroMQ. [See below](#zeromq).
 
- - publish/subscribe: pub sockets publish to a rendezvous point; all
-   sub sockets connected to the rendezvous point receive the messages.
+## Uses
 
- - request/reply: req sockets send requests to a rendezvous point,
-   which are distributed among the rep sockets connected to the
-   rendezvous point.  The replies back through the rep sockets are
-   routed back to the originating req sockets.
+This library is suitable for co-ordinating peers (e.g., node
+programs), acting as a gateway to other kinds of network (e.g.,
+relaying to browsers via SockJS), and of course just as a really easy
+way to use RabbitMQ.
 
- - push/pull: push sockets send messages to a rendezvous point; the
-   messages are distributed among the pull sockets connected to the
-   rendezvous point.
+## API
 
-(<a href="#running">Skip to "Getting something running"</a>)
+The entry point is `createContext`, which gives you a factory for
+sockets. You supply it the URL to your RabbitMQ server:
 
-## messages.MessageStream and messages.MessageServer
+    var context = require('rabbit.js').createContext('amqp://localhost');
 
-    var msgs = require('rabbit.js/lib/messages');
+To start sending or receiving messages you need to acquire a socket:
 
-These classes are used to decorate byte streams (e.g., `net.Stream`) and
-servers (e.g., `net.Server`) respectively. `MessageStream` simply
-partitions a byte stream into length-prefixed
-messages. `MessageServer` wraps a server to provide `MessageStreams`
-instead of streams for connections.
+    var pub = context.socket('PUB');
+    var sub = context.socket('SUB');
 
-## sockets
+and connect it to something:
 
-    var sockets = require('rabbit.js/lib/sockets');
+    pub.connect('alerts');
+    sub.connect('alerts');
 
-The module `sockets.js` wraps a message server to speak the messaging
-patterns using RabbitMQ.
+Sockets act like
+[Streams](http://nodejs.org/docs/latest/api/streams.html); in
+particular you will get `'data'` events from those that are readable,
+and you can `write()` to those that are writable. If you're expecting
+data that is encoded strings, you can `setEncoding()` to get strings
+instead of buffers as data events.
 
-The sockets need a tiny bit of protocol on connection; the first
-message sent must be the intended socket type -- one of 'pub', 'sub',
-'push', 'pull', 'req', 'rep' -- plus a space, plus the name of a
-"rendezvous point" (which will correspond to an AMQP exchange or
-queue).  For example, `"pub amq.topic"`.  The rendezvous point will be
-created for you if necessary.
+    sub.setEncoding('utf8');
+    sub.on('data', function(note) { console.log("Alarum! " + note); });
+    
+    pub.write("Emergency. There's an emergency going on", 'utf8');
 
-The rendezvous is optional for pub and sub sockets, which will use the
-`amq.fanout` exchange by default (but it is better to provide one,
-unless you want all messages from all pub sockets going to all
-subscribed sockets).
+You can also use pipe to forward messages to or from another stream,
+making relaying simple:
 
-You can supply an `allowed` option to `sockets.listen()`, which will
-be used for access control. It is simply a map of rendezvous names to
-allowed socket types; e.g.,
+    sub.pipe(process.stdout);
 
-    $ sockets.listen(svr, {allowed: {'chat': ['pub', 'sub'],
-                                   'requests': ['req', 'rep']}});
+Lastly, note that a socket may be connected more than once, by calling
+`socket.connect(x)` with different `x`s. What this entails depends on
+the socket type. We'll talk about that next.
 
-The option `url` takes an [AMQP
-URL](http://rdoc.info/github/ruby-amqp/amqp/master/file/docs/ConnectingToTheBroker.textile#Using_connection_strings)
-for connection to RabbitMQ. It defaults to a server running on
-localhost.
+### Socket types
 
-## sockets.Server (pipes)
+The socket types, passed as an argument to `Context#socket`, determine
+whether the socket is readable and writable, and what happens to
+messages written to it. Socket types (but not sockets themselves)
+should be used in the pairs described below.
 
-<code>sockets.Server</code> is a server with a method for getting a
-connection to it.  This is useful if you want to program with sockets
-from inside node.
+To make the descriptions a bit easier, we'll say if
+`connect(x)` is called on a socket for some `x`, the socket has a
+connection to x.
 
-    $ node
-    > var sockets = new require('rabbit.js/lib/sockets');
-    > var serv = new sockets.Server();
-    > sockets.listen(serv); // the ff not a callback for readability
-    > var pub = serv.connect();
-    > pub.send('pub');
-    > var sub = serv.connect();
-    > sub.send('sub');
-    > sub.on('message', function(m) {console.log(m);});
-    > pub.send('Hello world!');
+'''PUB'''lish/'''SUB'''scribe: every SUB socket connected to <x> gets
+each message sent by a PUB socket connected to <x>; a PUB socket
+sends every message to each of its connections. SUB sockets are
+readable only, and PUB sockets are writable only.
 
-## Examples
+'''PUSH'''/'''PULL''': a PUSH socket will send each message to a
+single connection, using round-robin. A PULL socket will receive a
+share of the messages sent to each <y> to which it is connected,
+determined by round-robin at <y>. PUSH sockets are writable only, and
+PULL sockets are readable only.
 
-NB The examples run from the source directory and don't use an
-'installed' rabbit.js.
+'''REQ'''uest/'''REP'''ly: a REQ socket sends each message to one of
+its connections, and receives replies in turn; a REP socket receives a
+share of the messages sent to each <y> to which it is connected, and
+must send a reply in turn. REQ and REP sockets are both readable and
+writable.
 
-### Socket server
+## Using with servers
 
-The file example/socketserver.js demonstrates using the pipe server
-with regular net.createServer.
+A few modules have a socket-server-like abstraction; canonically, the
+`net` module, but also for example SockJS and Socket.IO. These can be
+adapted using something similar to the following.
 
-It creates two socket servers, one for incoming messages and one for
-outgoing messages. It then hooks these up through a pipe server -- a
-`sockets.Server` -- using push and pull connections.
+    var context = new require('rabbit.js').createContext('amqp://localhost');
+    var inServer = net.createServer(function(connection) {
+      var s = context.socket('PUB');
+      s.connect('incoming');
+      connection.pipe(s);
+    });
+    inServer.listen(5000);
 
-To play:
+This is a simplistic example; a bare TCP socket won't in general emit
+data in chunks that are meaningful to applications, even if they are
+written that way at the far end. A library such as `spb` can be used
+encode and decode messages in byte streams if needed.
 
-    rabbit.js$ NODE_PATH=lib node example/socketserver.js &
-    rabbit.js$ nc localhost 5001
+## <a name="zeromq"></a>Relation to ZeroMQ
 
-and in another term:
+rabbit.js was inspired by the [RabbitMQ/ZeroMQ
+adapter](http://github.com/rabbitmq/rmq-0mq/) I developed with Martin
+Sústrik. The rationale for using RabbitMQ in a ZeroMQ-based network is
+largely transferable to rabbit.js:
 
-    $ nc localhost 5002
+ * RabbitMQ introduces a degree of monitoring and transparency,
+   especially if one uses the web management app;
+ * RabbitMQ can bridge to other protocols (notably AMQP and STOMP);
+ * RabbitMQ provides reliable, persistent queues if desired
 
-If you type in the first term it comes out the second. If you open
-another term and connect to 5002, you'll find that messages are
-round-robined among the outputs; if you open another connection to
-5001 you'll find it also sends to one of the outputs.
+with some additional benefits:
 
-### rabbit.js and SockJS
+ * since rabbit.js sockets implement the `Stream` interface, one
+   can easily pipe messages around
+ * using RabbitMQ as a backend obviates some configuration management
+   -- just supply all instances the broker URL and you're good to go.
+ * there's room in the API for more involved routing and other
+   behaviour since AMQP is, well, more complicated let's say.
 
-`sockets.listen()` can adapt itself to a SockJS server. There is a
-simple example given in `example/sockjs.js`. npm will install SockJS
-for you:
+Here are some notable differences and similarities to ZeroMQ in
+rabbit.js's API and semantics.
 
-    rabbit.js$ npm install sockjs
+To start, there's no distinction in rabbit.js between clients and
+servers (`connect` and `bind` in ZeroMQ, following the BSD socket
+API), since RabbitMQ is effectively acting as a relaying server for
+everyone to `connect` to. Relatedly, the argument supplied to
+`connect()` is abstract, in the sense that it's just a name rather
+than a transport-layer address.
 
-Run `NODE_PATH=lib node example/sockjs.js` and point your browser at
-`http://localhost:8080` to see the example in action.
+Request and Reply sockets have very similar semantics to those in
+ZeroMQ. Requesting sockets must take care not to issue more than
+request at a time, or to label requests (and rely on repliers
+preserving the label in replies) such that the answers can be
+correlated with the requests. Actually this is much the same as
+ZeroMQ; it follows from the possibility of replies coming back out of
+order due to round-robining. Repliers must respond to requests in the
+order that they come in, and respond exactly once to each request.
 
-You can of course mix SockJS with message server or pipes described
-above.
+There are no DEALER or ROUTER sockets (a.k.a., XREQ and XREQ) in
+rabbit.js. In ZeroMQ these are implemented by prefixing messages with
+a reverse path, which then requires encoding and thereby complication
+when relaying to other streams or protocols. Instead, rabbit.js notes
+the reverse path as messages are relayed to a REP socket, and
+reapplies it when the response appears (giving rise to the ordering
+requirement on repliers).
 
-### rabbit.js and Socket.IO
+## Relation to AMQP and STOMP
 
-`MessageStream` is designed to look just like Socket.IO's `Client`
-class, and `sockets.listen()` will happily wrap a Socket.IO
-server. npm should install Socket.IO:
+rabbit.js makes some simplifying assumptions that must be kept in mind
+when integrating with other protocols that RabbitMQ supports.
 
-    rabbit.js$ npm install socket.io@0.6.18
+PUB and SUB sockets declare non-durable fanout exchanges named for the
+argument given to `connect`. To send to SUB sockets or receive from
+PUB sockets, publish or bind (or subscribe in the case of STOMP) to
+the exchange with the same name.
 
-(that's socket.io from before it decided to become a framework)
-
-Run `NODE_PATH=lib node example/socketio.js`, and point your browser at
-`http://localhost:8080/` you'll get a familiar demo, this time running
-through RabbitMQ.
-
-You can also mix this with the socket or pipe server above, since they
-are both sending messages through RabbitMQ; or, with an AMQP client
-(note -- the pub/sub sockets use the exchange amq.fanout by default).
-
-<a name="running"></a>
-## Getting something running
-
-In the source directory, get the dependencies:
-
-    rabbit.js$ npm install
-
-You also need RabbitMQ, of course. Follow the [installation
-instructions](http://www.rabbitmq.com/install.html), or if you
-use homebrew just do
-
-    $ brew install rabbitmq
-    ...
-    $ rabbitmq-server
-
-Now you can run the examples, e.g.,
-
-    rabbit.js$ npm install sockjs
-    rabbit.js$ NODE_PATH=lib node examples/sockjs.js
-
-(and browse to http://localhost:8080/)
+PUSH, PULL, REQ and REP sockets use durable, non-exclusive queues
+named for the argument given to `connect`. If you are replying, be
+sure to follow the convention of sending the response to the queue
+given in the `'replyTo'` property of the request message.
