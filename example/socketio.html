@@ -1,18 +1,18 @@
 <!doctype html>
 <html>
   <head>
-    <title>rabbit.js publish/subscribe example</title>
+    <title>rabbit.js and Socket.IO publish/subscribe example</title>
     <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
 
     <p>
-      If you <a href="pubsub.html">open the page</a> in more than one
+      If you <a href="index.html">open the page</a> in more than one
       tab or window, you'll see published messages are sent to each
       and every subscriber (but only the messages since it subscribed,
       of course).
     </p>
-    
+
     <script>
       function message(obj){
         var el = document.createElement('p');
@@ -20,37 +20,28 @@
         document.getElementById('chat').appendChild(el);
         document.getElementById('chat').scrollTop = 1000000;
       }
-      
+
+      var conn = io.connect('http://localhost:8080');
+
       function send(){
         var val = document.getElementById('text').value;
-        pub.send(val);
+        conn.send(val);
       }
-      
+
       function esc(msg){
         return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       };
 
-      transports = ['websocket', 'xhr-multipart', 'xhr-polling'];
-      
-      var pub = new io.Socket(null, {transports: transports});
-      var sub = new io.Socket(null, {transports: transports});
-      
-      sub.connect();
-      sub.send('sub chat');
-
-      pub.connect();
-      pub.send('pub chat');
-
-      sub.on('message', function(obj){
+      conn.on('message', function(obj){
         message(obj);
       });
     </script>
-    
+
     <div id="chat"></div>
     <form id="form" onsubmit="send(); return false">
       <input type="text" autocomplete="off" id="text"><input type="submit" value="Send">
     </form>
-    
+
     <style>
       #chat { height: 200px; overflow: auto; width: 400px; border: 1px solid #eee; font: 13px Helvetica, Arial; }
       #chat p { padding: 8px; margin: 0; }
