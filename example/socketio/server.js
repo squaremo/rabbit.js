@@ -2,7 +2,7 @@ var http = require('http');
 var url = require('url');
 var fs = require('fs');
 var io = require('socket.io');
-var context = require('../index').createContext();
+var context = require('../../index').createContext();
 
 var httpserver = http.createServer(handler);
 
@@ -39,7 +39,7 @@ function handler(req, res) {
   case '/':
     path = '/index.html';
   case '/index.html':
-    fs.readFile(__dirname + '/socketio.html', function(err, data){
+    fs.readFile(__dirname + '/index.html', function(err, data){
       if (err) return send404(res);
       res.writeHead(200, {'Content-Type': 'text/html'});
       res.write(data, 'utf8');

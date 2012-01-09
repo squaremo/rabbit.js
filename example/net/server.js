@@ -7,7 +7,7 @@
 // as appropriate).
 
 var net = require('net'),
-    context = require('../index').createContext('amqp://localhost:5672');
+    context = require('../../index').createContext('amqp://localhost:5672');
 
 var inSrv = net.createServer(function(connection) {
   var push = context.socket('PUSH');

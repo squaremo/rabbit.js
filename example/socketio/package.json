@@ -1,0 +1,7 @@
+{
+  "name": "rabbit.js-socketio-example",
+  "version": "0.0.0",
+  "dependencies": {
+    "socket.io": ">=0.8"
+  }
+}

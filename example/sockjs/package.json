@@ -1,0 +1,7 @@
+{
+  "name": "rabbit.js-sockjs-example",
+  "version": "0.0.0",
+  "dependencies": {
+    "sockjs": "*"
+  }
+}
