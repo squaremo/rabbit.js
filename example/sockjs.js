@@ -14,8 +14,7 @@ var httpserver = http.createServer(function (req, res) {
     fs.readFile(__dirname + '/sockjs.html', function(err, data) {
       if (err) return send404(res);
       res.writeHead(200, {'Content-Type': 'text/html'});
-      res.write(data, 'utf8');
-      res.end();
+      res.end(data);
     });
     break;
   default: send404(res);
@@ -24,8 +23,7 @@ var httpserver = http.createServer(function (req, res) {
 
 send404 = function(res) {
 	res.writeHead(404);
-	res.write('404');
-	res.end();
+	res.end('404');
 };
 
 // Listen for SockJS connections
