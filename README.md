@@ -2,7 +2,7 @@
 
     $ npm install rabbit.js
 
-This library presents a simple, socket-oriented API* for messaging in
+This library provides a simple, socket-oriented API* for messaging in
 [node.js](http://nodejs.org/), using
 [RabbitMQ](http://www.rabbitmq.com/) as a backend.
 
@@ -14,15 +14,14 @@ This library presents a simple, socket-oriented API* for messaging in
     pub.connect('events');
     pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
 
-
 *Yes, rather like ZeroMQ. [See below](#zeromq).
 
 ## Uses
 
-This library is suitable for co-ordinating peers (e.g., node
+This library is suitable for co-ordinating peers (e.g., Node.JS
 programs), acting as a gateway to other kinds of network (e.g.,
-relaying to browsers via SockJS), and of course just as a really easy
-way to use RabbitMQ.
+relaying to browsers via SockJS), or simply as a really easy way to
+use RabbitMQ.
 
 ## API
 
@@ -60,14 +59,23 @@ making relaying simple:
 
 Lastly, note that a socket may be connected more than once, by calling
 `socket.connect(x)` with different `x`s. What this entails depends on
-the socket type. We'll talk about that next.
+the socket type (see below), but messages to and from different
+`connect()`ions are not distinguished. For example
+
+    var sub2 = context.socket('SUB');
+    sub2.connect('system');
+    sub2.connect('notifications');
+
+Here, the socket `sub2` will receive all messages published to
+`'system'` and all those published to `'notifications'` as well, but
+it is not possible to discriminate between the sources.
 
 ### Socket types
 
 The socket types, passed as an argument to `Context#socket`, determine
 whether the socket is readable and writable, and what happens to
-messages written to it. Socket types (but not sockets themselves)
-should be used in the pairs described below.
+messages written to it. Socket types (but not necessarily sockets
+themselves) should be used in the pairs described below.
 
 To make the descriptions a bit easier, we'll say if
 `connect(x)` is called on a socket for some `x`, the socket has a
@@ -106,8 +114,22 @@ adapted using something similar to the following.
 
 This is a simplistic example; a bare TCP socket won't in general emit
 data in chunks that are meaningful to applications, even if they are
-written that way at the far end. A library such as `spb` can be used
-encode and decode messages in byte streams if needed.
+written that way at the far end. A library such as
+[spb](https://github.com/squaremo/node-spb) can be used encode and
+decode message streams in byte streams if needed.
+
+## Examples
+
+Each subdirectory of `example` has code demonstrating using
+rabbit.js with other modules. Each can be run with, e.g.,
+
+    $ cd example/sockjs
+    $ npm install && npm start
+
+All of the examples assume there is a [RabbitMQ server
+running](http://rabbit.mq/download.html) locally. The SockJS and
+Socket.IO examples both start a website which you can visit at
+`http://localhost:8080`.
 
 ## <a name="zeromq"></a>Relation to ZeroMQ
 
