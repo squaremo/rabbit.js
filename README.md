@@ -81,18 +81,18 @@ To make the descriptions a bit easier, we'll say if
 `connect(x)` is called on a socket for some `x`, the socket has a
 connection to x.
 
-'''PUB'''lish/'''SUB'''scribe: every SUB socket connected to <x> gets
+**PUB**lish/**SUB**scribe: every SUB socket connected to <x> gets
 each message sent by a PUB socket connected to <x>; a PUB socket
 sends every message to each of its connections. SUB sockets are
 readable only, and PUB sockets are writable only.
 
-'''PUSH'''/'''PULL''': a PUSH socket will send each message to a
+**PUSH**/**PULL**: a PUSH socket will send each message to a
 single connection, using round-robin. A PULL socket will receive a
 share of the messages sent to each <y> to which it is connected,
 determined by round-robin at <y>. PUSH sockets are writable only, and
 PULL sockets are readable only.
 
-'''REQ'''uest/'''REP'''ly: a REQ socket sends each message to one of
+**REQ**uest/**REP**ly: a REQ socket sends each message to one of
 its connections, and receives replies in turn; a REP socket receives a
 share of the messages sent to each <y> to which it is connected, and
 must send a reply in turn. REQ and REP sockets are both readable and
