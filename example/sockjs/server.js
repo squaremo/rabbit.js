@@ -7,7 +7,7 @@
 // You may ask "Why not just reply directly instead of going through
 // RabbitMQ?". Well, imagine that the uppercasing was in fact some
 // specialised job that was running in another program, and further
-// that we migth wish to run several instances of that program to keep
+// that we might wish to run several instances of that program to keep
 // up with the requests. By using RabbitMQ, the requests will be
 // load-balanced among all programs listening on a REPly socket.
 
