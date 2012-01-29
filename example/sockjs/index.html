@@ -6,9 +6,7 @@
   <body>
     <script>
       var sock = new SockJS("http://localhost:8080/socks");
-      sock.onopen = function() {
-        sock.send('req questions');
-      }
+
       sock.onmessage = function(msg) {
         document.getElementById('out').value = msg.data;
       };
