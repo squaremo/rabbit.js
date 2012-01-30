@@ -193,3 +193,18 @@ PUSH, PULL, REQ and REP sockets use durable, non-exclusive queues
 named for the argument given to `connect`. If you are replying, be
 sure to follow the convention of sending the response to the queue
 given in the `'replyTo'` property of the request message.
+
+## What happened to `listen()`?
+
+I removed it. It wasn't entirely wrong, but it did have two failings:
+firstly, it exposed the socket type and the address to the (end)
+client, while the client ought not to need know about them; secondly,
+and more fatally, it required a dedicated client connection per
+socket, which is a problem for e.g., browsers.
+
+The new API avoids these problems by not requiring any particular
+behaviour from a client connection -- that is totally up to you (if
+you even use any client connections). If you need to multiplex on a
+client connection you can do that by, say, prefixing each message with
+a channel name; or, as the Socket.IO example does, combine two simplex
+sockets onto a duplex client connection.
