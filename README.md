@@ -121,10 +121,15 @@ decode message streams in byte streams if needed.
 ## Examples
 
 Each subdirectory of `example` has code demonstrating using
-rabbit.js with other modules. Each can be run with, e.g.,
+rabbit.js with other modules. Install the prerequisites for rabbit.js
+first:
 
-    $ cd example/sockjs
-    $ npm install && npm start
+    rabbit.js$ npm install
+
+Now each example can be run with, e.g.,
+
+    rabbit.js$ cd example/sockjs
+    sockjs$ npm install && npm start
 
 All of the examples assume there is a [RabbitMQ server
 running](http://rabbit.mq/download.html) locally. The SockJS and
