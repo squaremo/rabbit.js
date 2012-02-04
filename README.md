@@ -98,6 +98,49 @@ share of the messages sent to each <y> to which it is connected, and
 must send a reply in turn. REQ and REP sockets are both readable and
 writable.
 
+## Subscriptions and topics
+
+By default messages sent through a PUB socket to an address will go to
+all SUB sockets connected to that address. Sometimes you want finer
+control over routing. For example, if you want to be able to address
+messages to specific users, but not have to have a socket per user.
+
+For this purpose you can use structured addresses to specify different
+varieties of routing, and give messages topics by which it is
+routed. Instead of a string as an address, you supply an object with
+the address and the additional properties `routing` (the kind of
+routing) and for SUB sockets, `pattern` (the subscription
+pattern). When using a PUB socket so connected, you use
+`socket#setsockopt` to set the topic of the next message.
+
+    var sub = context.socket('SUB');
+    sub.connect({address: 'users',
+                 pattern: 'mikeb',
+                 routing: 'direct'});
+    var pub = context.socket('PUB');
+    pub.connect({address: 'users', routing: 'direct'});
+    pub.setsockopt('topic', 'mikeb');
+    pub.write('Hello mikeb!');
+
+### Varieties of routing
+
+The kinds of routing available, unsurprisingly, correspond to
+RabbitMQ's exchange types. In an unmodified installation, these are:
+
+ - **fanout** This is what you get if you just use a string for the
+     address. Topics and patterns are ignored, and all messages go to
+     all subscribers.
+
+ - **direct** A message with a topic T goes to all subscribers that
+     connected with a pattern of exactly T.
+
+ - **topic** This uses matching with wildcards. Topics are
+     dot-delimited, e.g., `"event.catastrophic.server3"` and patterns
+     likewise, with `'*'` standing in for a single segment, and `'#'`
+     standing in for zero or more segments. For example, both
+     `"event.*.server3"` and `"event.#"` would match the topic
+     above. (NB I did not invent this scheme.)
+
 ## Using with servers
 
 A few modules have a socket-server-like abstraction; canonically, the
