@@ -7,12 +7,15 @@ This library provides a simple, socket-oriented API* for messaging in
 [RabbitMQ](http://www.rabbitmq.com/) as a backend.
 
     var context = require('rabbit.js').createContext();
-    var pub = context.socket('PUB'), sub = context.socket('SUB');
-    sub.pipe(process.stdout);
-    sub.connect('events');
-
-    pub.connect('events');
-    pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
+    context.on('ready', function() {
+      var pub = context.socket('PUB'), sub = context.socket('SUB');
+      sub.pipe(process.stdout);
+      sub.connect('events', function() {
+        pub.connect('events', function() {
+          pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
+        });
+      });
+    });
 
 *Yes, rather like ZeroMQ. [See below](#zeromq).
 
