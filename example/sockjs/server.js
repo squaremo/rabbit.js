@@ -21,7 +21,7 @@ var context = require('../../index').createContext('amqp://localhost:5672');
 // for SockJS connections.
 var httpserver = http.createServer(handler);// Listen for SockJS connections
 var sockjs_opts = {
-  sockjs_url: "http://sockjs.github.com/sockjs-client/sockjs-latest.min.js"};
+  sockjs_url: "http://cdn.sockjs.org/sockjs-0.2.min.js"};
 var sjs = sockjs.createServer(sockjs_opts);
 sjs.installHandlers(httpserver, {prefix: '[/]socks'});
 
