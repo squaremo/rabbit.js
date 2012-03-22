@@ -2,6 +2,6 @@
   "name": "rabbit.js-sockjs-example",
   "version": "0.0.0",
   "dependencies": {
-    "sockjs": "*"
+    "sockjs": "0.2.x"
   }
 }
