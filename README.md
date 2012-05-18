@@ -44,7 +44,7 @@ and connect it to something:
     sub.connect('alerts');
 
 Sockets act like
-[Streams](http://nodejs.org/docs/latest/api/streams.html); in
+[Streams](http://nodejs.org/docs/latest/api/stream.html); in
 particular you will get `'data'` events from those that are readable,
 and you can `write()` to those that are writable. If you're expecting
 data that is encoded strings, you can `setEncoding()` to get strings
