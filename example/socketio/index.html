@@ -21,7 +21,7 @@
         document.getElementById('chat').scrollTop = 1000000;
       }
 
-      var conn = io.connect('http://localhost:8080');
+      var conn = io.connect('http://localhost:{{PORT}}');
 
       function send(){
         var val = document.getElementById('text').value;

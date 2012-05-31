@@ -16,6 +16,6 @@
     "node": ">=0.6"
   },
   "dependencies": {
-    "amqp": "0.1.0 || 0.1.1"
+    "amqp": "git+https://github.com/cantina/node-amqp.git"
   }
 }
