@@ -1,4 +1,5 @@
 var assert = require('assert');
+var createContext = require('../index').createContext;
 
 var PARAMS = process.env['AMQP_PARAMS'];
 if (PARAMS) {
@@ -14,9 +15,24 @@ else {
 console.info("Using connection parameters:");
 console.info(JSON.stringify(PARAMS));
 
+var suite = module.exports;
+
+suite.trivialOpenContext = testWithContext(function(done) {
+    done();
+});
+
+// Sadly, this is broken in the node-amqp library.
+
+// suite.connectionError = function(done) {
+//     var ctx = createContext('amqp://notauser:surely@localhost');
+//     ctx.on('error', done);
+//     ctx.on('ready', function() {
+//         assert.fail("Expected to fail connection open");
+//     });
+// };
 
 function withContext(fn) {
-    var ctx = require('../index').createContext(PARAMS);
+    var ctx = createContext(PARAMS);
     return fn(ctx);
 }
 
@@ -29,12 +45,6 @@ function testWithContext(test) {
         });
     };
 }
-
-var suite = module.exports;
-
-suite.trivialOpenContext = testWithContext(function(done) {
-    done();
-});
 
 suite.simplestPushPull = testWithContext(function(done) {
     var push = CTX.socket('PUSH');
