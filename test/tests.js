@@ -174,10 +174,42 @@ suite.onePull = testWithContext(function(done) {
     doPull(0);
 });
 
-suite.provokedError = testWithContext(function(done) {
+// Will fail when attempting to declare the unfortunately-named
+// exchange
+suite.exchangeError = testWithContext(function(done) {
   var sock = CTX.socket('SUB');
-  sock.on('error', function(ex) {
+  sock.on('error', function(e) {
+    assert.ok(!sock.readable && !sock.writable);
     done();
   });
   sock.connect('amq.not-supposed-to-exist');
+});
+
+// Will fail when attempting to declare the unfortunately-named queue
+suite.queueError = testWithContext(function(done) {
+  var sock = CTX.socket('PULL');
+  sock.on('error', function(e) {
+    assert.ok(!sock.readable && !sock.writable);
+    done();
+  });
+  sock.connect('amq.reserved-namespace');
+});
+
+suite.redeclareExchangeError = testWithContext(function(done) {
+  var sock1 = CTX.socket('PUB');
+  sock1.on('error', function(e) {
+    assert.fail('This socket should succeed');
+  });
+  var sock2 = CTX.socket('PUB');
+  sock2.on('error', function(e) {
+    assert.ok(!sock2.writable);
+    assert.ok(sock1.writable);
+    done();
+  });
+
+  sock1.connect({exchange: 'test-redeclare-error',
+                 routing: 'topic'});
+  sock2.connect({exchange: 'test-redeclare-error',
+                 routing: 'direct'});
+  sock1.write('foobar');
 });
