@@ -173,3 +173,11 @@ suite.onePull = testWithContext(function(done) {
 
     doPull(0);
 });
+
+suite.provokedError = testWithContext(function(done) {
+  var sock = CTX.socket('SUB');
+  sock.on('error', function(ex) {
+    done();
+  });
+  sock.connect('amq.not-supposed-to-exist');
+});
