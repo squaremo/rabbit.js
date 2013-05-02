@@ -1,0 +1,27 @@
+rabbit.js release notes
+=======================
+
+v0.2.1
+------
+
+Supports:
+ - Node.JS v0.6, v0.8, v0.10*
+
+*node-amqp presently does not claim to support Node.JS 0.10, but
+ appears to run OK.
+
+Main changes since v0.2:
+
+ * Use util.inherits consistently instead of working coincidentally
+   (https://github.com/squaremo/rabbit.js/pull/35,
+   https://github.com/squaremo/rabbit.js/issues/37 and
+   https://github.com/squaremo/rabbit.js/issues/38)
+
+ * Channel-level (i.e., most) errors are propagated through to
+   rabbit.js sockets (https://github.com/squaremo/rabbit.js/issues/28)
+
+ * Depends on a recent node-amqp
+   (https://github.com/squaremo/rabbit.js/pull/27 and
+   https://github.com/squaremo/rabbit.js/issues/25)
+
+ * Finally has some smoke tests
