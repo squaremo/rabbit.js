@@ -174,6 +174,42 @@ suite.onePull = testWithContext(function(done) {
     doPull(0);
 });
 
+suite.expiredPush = testWithContext(function(done){
+
+  var pull = CTX.socket('PULL');
+  var push = CTX.socket('PUSH');
+
+  push.setsockopt('expiration', '100');
+
+  var recievedMsg;
+
+  function doPull(){
+    setTimeout(function(){
+      pull.connect('expiredPush', function() {
+        pull.on('data', function (msg) {
+          recievedMsg = msg;
+        });
+        // I hate doing this there has to be nicer way to do this
+        setTimeout(function(){
+          assert.notEqual(recievedMsg, 'HELLO');
+          done();
+        }, 100);
+        });
+    }, 101);
+  }
+
+  function send() {
+      push.write('HELLO');
+  }
+
+  push.connect('expiredPush', function() {
+    send();
+  });
+
+  doPull()
+
+});
+
 // Will fail when attempting to declare the unfortunately-named
 // exchange
 suite.exchangeError = testWithContext(function(done) {
