@@ -40,11 +40,33 @@ var CTX;
 function testWithContext(test) {
     return function(done) { // mocha looks at the number of arguments
         withContext(function(ctx) {
+            var closeAndDone = function(err) {
+              ctx.close();
+              done(err);
+            };
             CTX = ctx;
-            CTX.on('ready', function() { return test(done); });
+            CTX.on('ready', function() { return test(closeAndDone); });
         });
     };
 }
+
+// Test we can happily maintain a rolling set of sockets. The main
+// concern is leaking event handlers (which node.js shall warn us
+// about).
+suite.testManySockets = testWithContext(function(done) {
+  var WINDOW = 20;
+  var socks = [];
+  for (var i = 0; i < WINDOW * 10; i++) {
+    var s = CTX.socket('PUB');
+    s.connect('amq.direct');
+    socks.push(s);
+    if (i > WINDOW) {
+      socks.shift().end();
+    }
+  }
+  var s1; while (s1 = socks.shift()) s1.destroy();
+  done();
+});
 
 suite.simplestPushPull = testWithContext(function(done) {
     var push = CTX.socket('PUSH');
