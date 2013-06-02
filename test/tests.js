@@ -197,40 +197,45 @@ suite.onePull = testWithContext(function(done) {
 });
 
 suite.expiredPush = testWithContext(function(done){
-
   var pull = CTX.socket('PULL');
+  pull.setEncoding('utf8');
+  
   var push = CTX.socket('PUSH');
+  var target = 'testExpiration';
 
-  push.setsockopt('expiration', '100');
-
-  var recievedMsg;
-
-  function doPull(){
-    setTimeout(function(){
-      pull.connect('expiredPush', function() {
-        pull.on('data', function (msg) {
-          recievedMsg = msg;
+  function doPull() {
+    setTimeout(function() {
+      pull.connect(target, function() {
+        pull.once('data', function (msg) {
+          switch (msg) {
+          case "Expires":
+            return done(new Error("Got expired msg"));
+          case "Does not expire":
+            return done();
+          default:
+            return done(new Error("What even is this msg?"));
+          }
         });
-        // I hate doing this there has to be nicer way to do this
-        setTimeout(function(){
-          assert.notEqual(recievedMsg, 'HELLO');
-          done();
-        }, 100);
-        });
-    }, 101);
+      });
+    }, 40);
   }
 
   function send() {
-      push.write('HELLO');
+    // the expiration can be small; the point is, it gets expired well
+    // before we connect with the pull socket
+    push.setsockopt('expiration', '10');
+    push.write('Expires');
+    push.setsockopt('expiration', undefined);
+    push.write('Does not expire');
   }
 
-  push.connect('expiredPush', function() {
-    send();
-  });
-
-  doPull()
-
+  push.connect(target, send);
+  doPull();
 });
+// NB much harder to test expiration on pub, since it won't rest in a
+// queue unless there's a sub socket -- and if there's a sub socket,
+// the likelihood is it will get the message before it expires.
+
 
 // Will fail when attempting to declare the unfortunately-named
 // exchange
