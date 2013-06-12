@@ -276,3 +276,33 @@ suite.redeclareExchangeError = testWithContext(function(done) {
                  routing: 'direct'});
   sock1.write('foobar');
 });
+
+suite.exchangeCleanup = testWithContext(function (done) {
+
+  var msgs = [];
+
+  var pub1 = CTX.socket('PUB');
+  var pub2 = CTX.socket('PUB');
+  var sub = CTX.socket('SUB');
+  sub.setEncoding('utf8');
+  sub.on('data', function (msg) {
+    msgs.push(msg);
+    if (msgs.length === 2) {
+      done();
+    }
+  });
+
+  sub.connect('testPubSub', function () {
+    pub1.connect('testPubSub', function () {
+      pub1.write('foo');
+      pub2.connect('testPubSub', function () {
+        pub1.on('end', function () {
+          pub2.write('bar');
+        });
+        pub1.end();
+      });
+    });
+
+  });
+
+});
