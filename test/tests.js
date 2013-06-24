@@ -36,39 +36,86 @@ function withContext(fn) {
     return fn(ctx);
 }
 
-var CTX;
 function testWithContext(test) {
     return function(done) { // mocha looks at the number of arguments
         withContext(function(ctx) {
-            var closeAndDone = function(err) {
+            var closeAndDone = function(maybeErr) {
               ctx.close();
-              done(err);
+              done(maybeErr);
             };
-            CTX = ctx;
-            CTX.on('ready', function() { return test(closeAndDone); });
+            ctx.on('ready', function() { return test(closeAndDone, ctx); });
         });
     };
 }
 
+suite.endWithoutConnect = testWithContext(function(done, CTX) {
+  var sock = CTX.socket('PUB');
+  sock.on('error', done);
+  sock.on('close', done);
+  sock.end();
+});
+
+suite.endWithReadable = testWithContext(function(done, CTX) {
+  var sock = CTX.socket('SUB');
+  sock.on('error', done);
+  sock.on('close', done);
+  sock.connect('testSubEnd', function() {
+    sock.end();
+  });
+});
+
+suite.endWithWriteable = testWithContext(function(done, CTX) {
+  var sock = CTX.socket('PUB');
+  sock.on('error', done);
+  sock.on('close', done);
+  sock.connect('testPubEnd', function() {
+    sock.end();
+  });
+});
+
+suite.endWithDuplex = testWithContext(function(done, CTX) {
+  var sock = CTX.socket('REQ');
+  sock.on('error', done);
+  sock.on('close', done);
+  sock.connect('testReqEnd', function() {
+    sock.end();
+  });
+});
+
+suite.endAwaitsConnects = testWithContext(function(done, CTX) {
+  var sock = CTX.socket('REP');
+  sock.on('error', done);
+  sock.on('close', done);
+  sock.connect('testRepEnd');
+  sock.connect('testRepEnd2');
+  sock.end();
+});
+
 // Test we can happily maintain a rolling set of sockets. The main
 // concern is leaking event handlers (which node.js shall warn us
 // about).
-suite.testManySockets = testWithContext(function(done) {
-  var WINDOW = 20;
+suite.testManySockets = testWithContext(function(done, CTX) {
+  var WINDOW = 10;
   var socks = [];
-  for (var i = 0; i < WINDOW * 10; i++) {
-    var s = CTX.socket('PUB');
-    s.connect('amq.direct');
+  var total = WINDOW * 10;
+  var ended = 0;
+  function latch() {
+    ended++;
+    if (ended === total) done();
+  }
+  for (var i = 0; i < total; i++) {
+    var s = CTX.socket('REQ');
+    s.connect('testManySockets');
+    s.on('close', latch);
     socks.push(s);
     if (i > WINDOW) {
       socks.shift().end();
     }
   }
-  var s1; while (s1 = socks.shift()) s1.destroy();
-  done();
+  var s1; while (s1 = socks.shift()) s1.end();
 });
 
-suite.simplestPushPull = testWithContext(function(done) {
+suite.simplestPushPull = testWithContext(function(done, CTX) {
     var push = CTX.socket('PUSH');
     var pull = CTX.socket('PULL');
     pull.setEncoding('utf8');
@@ -78,13 +125,12 @@ suite.simplestPushPull = testWithContext(function(done) {
     });
 
     push.connect('testPushPull', function() {
-        pull.connect('testPushPull', function() {
-            push.write('foo');
-        });
+      push.write('foo');
+      pull.connect('testPushPull');
     });
 });
 
-suite.simplestPubSub = testWithContext(function(done) {
+suite.simplestPubSub = testWithContext(function(done, CTX) {
     var pub = CTX.socket('PUB');
     var sub = CTX.socket('SUB');
     sub.setEncoding('utf8');
@@ -100,7 +146,7 @@ suite.simplestPubSub = testWithContext(function(done) {
     });
 });
 
-suite.simplestReqRep = testWithContext(function(done) {
+suite.simplestReqRep = testWithContext(function(done, CTX) {
     var req = CTX.socket('REQ');
     var rep = CTX.socket('REP');
 
@@ -123,7 +169,7 @@ suite.simplestReqRep = testWithContext(function(done) {
     });
 });
 
-suite.allSubs = testWithContext(function(done) {
+suite.allSubs = testWithContext(function(done, CTX) {
     var subs = [CTX.socket('SUB'), CTX.socket('SUB'), CTX.socket('SUB')];
     var latch = subs.length;
 
@@ -151,7 +197,7 @@ suite.allSubs = testWithContext(function(done) {
     doSub(0);
 });
 
-suite.onePull = testWithContext(function(done) {
+suite.onePull = testWithContext(function(done, CTX) {
     // It's very difficult to test that something didn't happen;
     // however we can serialise sends with recvs to make sure the
     // whole moves in single steps.
@@ -196,7 +242,7 @@ suite.onePull = testWithContext(function(done) {
     doPull(0);
 });
 
-suite.expiredPush = testWithContext(function(done){
+suite.expiredPush = testWithContext(function(done, CTX){
   var pull = CTX.socket('PULL');
   pull.setEncoding('utf8');
   
@@ -239,7 +285,7 @@ suite.expiredPush = testWithContext(function(done){
 
 // Will fail when attempting to declare the unfortunately-named
 // exchange
-suite.exchangeError = testWithContext(function(done) {
+suite.exchangeError = testWithContext(function(done, CTX) {
   var sock = CTX.socket('SUB');
   sock.on('error', function(e) {
     assert.ok(!sock.readable && !sock.writable);
@@ -249,7 +295,7 @@ suite.exchangeError = testWithContext(function(done) {
 });
 
 // Will fail when attempting to declare the unfortunately-named queue
-suite.queueError = testWithContext(function(done) {
+suite.queueError = testWithContext(function(done, CTX) {
   var sock = CTX.socket('PULL');
   sock.on('error', function(e) {
     assert.ok(!sock.readable && !sock.writable);
@@ -258,7 +304,7 @@ suite.queueError = testWithContext(function(done) {
   sock.connect('amq.reserved-namespace');
 });
 
-suite.redeclareExchangeError = testWithContext(function(done) {
+suite.redeclareExchangeError = testWithContext(function(done, CTX) {
   var sock1 = CTX.socket('PUB');
   sock1.on('error', function(e) {
     assert.fail('This socket should succeed');
@@ -270,9 +316,12 @@ suite.redeclareExchangeError = testWithContext(function(done) {
     done();
   });
 
-  sock1.connect({exchange: 'test-redeclare-error',
-                 routing: 'topic'});
-  sock2.connect({exchange: 'test-redeclare-error',
-                 routing: 'direct'});
-  sock1.write('foobar');
+  sock1.connect({
+    exchange: 'test-redeclare-error',
+    routing: 'topic'
+  }, function() {
+    sock2.connect({exchange: 'test-redeclare-error',
+                   routing: 'direct'});
+    sock1.write('foobar');
+  });
 });
