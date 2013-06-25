@@ -97,6 +97,7 @@ suite.endAwaitsConnects = testWithContext(function(done, CTX) {
 suite.testManySockets = testWithContext(function(done, CTX) {
   var WINDOW = 10;
   var socks = [];
+  var types = ['PUB', 'SUB', 'PUSH', 'PULL', 'REQ', 'REP'];
   var total = WINDOW * 10;
   var ended = 0;
   function latch() {
@@ -104,7 +105,8 @@ suite.testManySockets = testWithContext(function(done, CTX) {
     if (ended === total) done();
   }
   for (var i = 0; i < total; i++) {
-    var s = CTX.socket('REQ');
+    var t = types.shift(); types.push(t);
+    var s = CTX.socket(t);
     s.connect('testManySockets');
     s.on('close', latch);
     socks.push(s);
