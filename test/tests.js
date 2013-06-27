@@ -253,18 +253,17 @@ suite.expiredPush = testWithContext(function(done, CTX){
 
   function doPull() {
     setTimeout(function() {
-      pull.connect(target, function() {
-        pull.once('data', function (msg) {
-          switch (msg) {
-          case "Expires":
-            return done(new Error("Got expired msg"));
-          case "Does not expire":
-            return done();
-          default:
-            return done(new Error("What even is this msg?"));
-          }
-        });
+      pull.once('data', function (msg) {
+        switch (msg) {
+        case "Expires":
+          return done(new Error("Got expired msg"));
+        case "Does not expire":
+          return done();
+        default:
+          return done(new Error("What even is this msg?"));
+        }
       });
+      pull.connect(target);
     }, 40);
   }
 
