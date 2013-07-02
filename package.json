@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "amqplib": "0.0.1",
-    "when": "~2.1"
+    "when": "~2.1",
+    "readable-stream": "~1 >=1.0.2"
   },
   "devDependencies": {
     "mocha": ""
