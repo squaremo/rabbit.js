@@ -1,0 +1,13 @@
+{
+  "name": "rabbit.js-easy-amqp-example",
+  "version": "0.0.1",
+  "description": "Example of using rabbit.js as a simpler AMQP API",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": "",
+  "author": "Michael Bridgen <mikeb@squaremobius.net>",
+  "license": "BSD"
+}
