@@ -1,6 +1,22 @@
 rabbit.js release notes
 =======================
 
+v0.2.1-amqplib
+--------------
+
+This release is a rewrite of rabbit.js using
+[amqplib](https://squaremo.github.com/amqp.node) instead of
+node-amqp. It is intended to be API-compatible with rabbit.js
+v0.2.1. The version is given a suffix (`-amqplib`) for now, so that
+v0.2.1 will still be regarded as the "latest" version, and the rewrite
+is on the branch `amqplib` in the rabbit.js github
+repository. However, future versions will likely be developed from
+this branch; i.e., it will be merged into master, and the
+implementation using node-amqp abandoned.
+
+Supports:
+ - Node.JS v0.8, v0.10
+
 v0.2.1
 ------
 
