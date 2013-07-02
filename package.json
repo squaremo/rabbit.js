@@ -19,7 +19,8 @@
     "node": "0.8 || 0.10"
   },
   "dependencies": {
-    "amqplib": "0.0.1"
+    "amqplib": "0.0.1",
+    "when": "~2.1"
   },
   "devDependencies": {
     "mocha": ""
