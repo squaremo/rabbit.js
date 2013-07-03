@@ -33,6 +33,13 @@ sockets. You supply it the URL to your RabbitMQ server:
 
     var context = require('rabbit.js').createContext('amqp://localhost');
 
+A context emits `'error'` with an `Error` object if there's a problem
+with the underlying connection to the server. This invalidates the
+context and all its sockets.
+
+A context may be disconnected from the server with `#close()`. It will
+emit `'close'` once the underlying connection has been terminated.
+
 To start sending or receiving messages you need to acquire a socket:
 
     var pub = context.socket('PUB');
@@ -43,8 +50,8 @@ and connect it to something:
     pub.connect('alerts');
     sub.connect('alerts');
 
-Sockets act like
-[Streams](http://nodejs.org/docs/latest/api/stream.html); in
+Sockets act like ("old style")
+[Streams](http://nodejs.org/docs/v0.8.25/api/stream.html); in
 particular you will get `'data'` events from those that are readable,
 and you can `write()` to those that are writable. If you're expecting
 data that is encoded strings, you can `setEncoding()` to get strings
@@ -60,7 +67,7 @@ making relaying simple:
 
     sub.pipe(process.stdout);
 
-Lastly, note that a socket may be connected more than once, by calling
+A socket may be connected more than once, by calling
 `socket.connect(x)` with different `x`s. What this entails depends on
 the socket type (see below), but messages to and from different
 `connect()`ions are not distinguished. For example
@@ -72,6 +79,20 @@ the socket type (see below), but messages to and from different
 Here, the socket `sub2` will receive all messages published to
 `'system'` and all those published to `'notifications'` as well, but
 it is not possible to discriminate between the sources.
+
+Some socket types have options that may be set with
+`#setsockopt`. Presently there's just one option, on PUB and PUSH
+sockets, which is message expiration:
+
+    pub.setsockopt('expiration', 60000)
+
+In the example, messages written to `pub` will be discarded by the
+server if they've not been delivered after 60,000
+milliseconds. Message expiration only works with versions of RabbitMQ
+newer than 3.0.0.
+
+Lastly, a socket may be closed using `#end()`; this will clean up
+resources, and emit `'end'` once it's done so.
 
 ### Socket types
 
