@@ -48,6 +48,12 @@ function testWithContext(test) {
     };
 }
 
+suite.closeConnectionWithoutSocket = testWithContext(function(done, CTX) {
+  CTX.on('error', done);
+  CTX.on('close', done);
+  CTX.close();
+});
+
 suite.endWithoutConnect = testWithContext(function(done, CTX) {
   var sock = CTX.socket('PUB');
   sock.on('error', done);
