@@ -19,6 +19,20 @@ This library provides a simple, socket-oriented API* for messaging in
 
 *Yes, rather like ZeroMQ. [See below](#zeromq).
 
+## Status
+
+Still on major version `0`, though in use in a number of places, I
+believe.
+
+For the minute there are two branches: `master` continues the original
+implementation, based on node-amqp. `amqplib` has a reimplementation
+based on amqplib, which I believe to be the Way Forward. These are
+available in npm as "regular" versions (e.g., 0.2.2), and "amqplib"
+versions (e.g., 0.2.1-amqplib). The features and API are equivalent
+in equivalent version numbers.
+
+Version 0.2.2 will likely be the last version based on node-amqp.
+
 ## Uses
 
 This library is suitable for co-ordinating peers (e.g., Node.JS
