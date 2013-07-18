@@ -96,9 +96,10 @@ it is not possible to discriminate between the sources.
 
 Some socket types have options that may be set with
 `#setsockopt`. Presently there's just one option, on PUB and PUSH
-sockets, which is message expiration:
+sockets, which is message expiration, given as a stringified number of
+milliseconds:
 
-    pub.setsockopt('expiration', 60000)
+    pub.setsockopt('expiration', '60000')
 
 In the example, messages written to `pub` will be discarded by the
 server if they've not been delivered after 60,000
