@@ -6,16 +6,18 @@ This library provides a simple, socket-oriented API* for messaging in
 [node.js](http://nodejs.org/), using
 [RabbitMQ](http://www.rabbitmq.com/) as a backend.
 
-    var context = require('rabbit.js').createContext();
-    context.on('ready', function() {
-      var pub = context.socket('PUB'), sub = context.socket('SUB');
-      sub.pipe(process.stdout);
-      sub.connect('events', function() {
-        pub.connect('events', function() {
-          pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
-        });
-      });
+```js
+var context = require('rabbit.js').createContext();
+context.on('ready', function() {
+  var pub = context.socket('PUB'), sub = context.socket('SUB');
+  sub.pipe(process.stdout);
+  sub.connect('events', function() {
+    pub.connect('events', function() {
+      pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
     });
+  });
+});
+```
 
 *Yes, rather like ZeroMQ. [See below](#zeromq).
 
@@ -45,7 +47,9 @@ use RabbitMQ.
 The entry point is `createContext`, which gives you a factory for
 sockets. You supply it the URL to your RabbitMQ server:
 
-    var context = require('rabbit.js').createContext('amqp://localhost');
+```js
+var context = require('rabbit.js').createContext('amqp://localhost');
+```
 
 A context emits `'error'` with an `Error` object if there's a problem
 with the underlying connection to the server. This invalidates the
@@ -56,13 +60,17 @@ emit `'close'` once the underlying connection has been terminated.
 
 To start sending or receiving messages you need to acquire a socket:
 
-    var pub = context.socket('PUB');
-    var sub = context.socket('SUB');
+```js
+var pub = context.socket('PUB');
+var sub = context.socket('SUB');
+```
 
 and connect it to something:
 
-    pub.connect('alerts');
-    sub.connect('alerts');
+```js
+pub.connect('alerts');
+sub.connect('alerts');
+```
 
 Sockets act like ("old style")
 [Streams](http://nodejs.org/docs/v0.8.25/api/stream.html); in
@@ -71,24 +79,30 @@ and you can `write()` to those that are writable. If you're expecting
 data that is encoded strings, you can `setEncoding()` to get strings
 instead of buffers as data events.
 
-    sub.setEncoding('utf8');
-    sub.on('data', function(note) { console.log("Alarum! " + note); });
-    
-    pub.write("Emergency. There's an emergency going on", 'utf8');
+```js
+sub.setEncoding('utf8');
+sub.on('data', function(note) { console.log("Alarum! " + note); });
+
+pub.write("Emergency. There's an emergency going on", 'utf8');
+```
 
 You can also use pipe to forward messages to or from another stream,
 making relaying simple:
 
-    sub.pipe(process.stdout);
+```js
+sub.pipe(process.stdout);
+```
 
 A socket may be connected more than once, by calling
 `socket.connect(x)` with different `x`s. What this entails depends on
 the socket type (see below), but messages to and from different
 `connect()`ions are not distinguished. For example
 
-    var sub2 = context.socket('SUB');
-    sub2.connect('system');
-    sub2.connect('notifications');
+```js
+var sub2 = context.socket('SUB');
+sub2.connect('system');
+sub2.connect('notifications');
+```
 
 Here, the socket `sub2` will receive all messages published to
 `'system'` and all those published to `'notifications'` as well, but
@@ -99,7 +113,9 @@ Some socket types have options that may be set with
 sockets, which is message expiration, given as a stringified number of
 milliseconds:
 
-    pub.setsockopt('expiration', '60000')
+```js
+pub.setsockopt('expiration', '60000')
+```
 
 In the example, messages written to `pub` will be discarded by the
 server if they've not been delivered after 60,000
@@ -143,13 +159,15 @@ A few modules have a socket-server-like abstraction; canonically, the
 `net` module, but also for example SockJS and Socket.IO. These can be
 adapted using something similar to the following.
 
-    var context = new require('rabbit.js').createContext('amqp://localhost');
-    var inServer = net.createServer(function(connection) {
-      var s = context.socket('PUB');
-      s.connect('incoming');
-      connection.pipe(s);
-    });
-    inServer.listen(5000);
+```js
+var context = new require('rabbit.js').createContext('amqp://localhost');
+var inServer = net.createServer(function(connection) {
+  var s = context.socket('PUB');
+  s.connect('incoming');
+  connection.pipe(s);
+});
+inServer.listen(5000);
+```
 
 This is a simplistic example; a bare TCP socket won't in general emit
 data in chunks that are meaningful to applications, even if they are
