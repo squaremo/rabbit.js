@@ -6,23 +6,32 @@ var ctx = require('../../index').createContext();
 
 ctx.on('ready', function() {
 
-  var NUM = 1000000;
-
+  var running = true;
   var pub = ctx.socket('PUB');
   var sub = ctx.socket('SUB');
 
-  var now = process.hrtime();
-  var i = 0;
+  var now = process.hrtime(), since = now;
+  var i = 0, j = 0;
+  var lasti = 0, lastj = 0;
+
+  function report() {
+    var elapsed = process.hrtime(since);
+    since = process.hrtime();
+    var secs = elapsed[0] + elapsed[1] * Math.pow(10, -9);
+    var sent = j - lastj, recv = i - lasti;
+    lasti = i; lastj = j;
+    console.log('Sent: %d at %d msg/s, Recv: %d at %d msg/s',
+                sent, (sent / secs).toFixed(1),
+                recv, (recv / secs).toFixed(1));
+  }
 
   function finish() {
+    running = false;
     var since = process.hrtime(now);
-    console.log("Sending and receiving %d messages took %d secs",
-                i, since[0] + since[1] * Math.pow(10, -9));
+    report();
     ctx.close();
   }
   process.on('SIGINT', finish);
-
-  console.log('Get ready for %d messages!', NUM);
 
   sub.connect('easyamqp', function() {
     console.log("Starting consumer...");
@@ -30,24 +39,28 @@ ctx.on('ready', function() {
     function recv() {
       while(sub.read()) {
         i++;
-        if (i % 1000 === 0) console.log("%d messages received...", i);
       }
-      if (i < NUM) sub.once('readable', recv);
-      else finish();
     }
-    recv();
+    sub.on('readable', recv);
 
     pub.connect('easyamqp', function() {
       console.log("Starting publisher...");
 
-      var j = 0;
+      var writable = true;
       function send() {
-        while (j < NUM && pub.write('foobar')) {
+        while (running && (writable = pub.write('foobar'))) {
           j++;
-          if (j % 1000 === 0) console.log('Sent %d messages', j);
+          if (j % 5000 === 0) {
+            report();
+            break; // give recv a chance
+          }
         }
-        if (j < NUM) pub.once('drain', send);
+        if (running && writable) setImmediate(send);
+        else {
+          //console.log('Waiting for drain at %d', j);
+        }
       }
+      pub.on('drain', send);
       send();
     });
 
