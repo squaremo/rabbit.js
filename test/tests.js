@@ -1,5 +1,7 @@
 var assert = require('assert');
+
 var createContext = require('../index').createContext;
+
 
 var PARAMS = process.env['AMQP_PARAMS'];
 if (PARAMS) {
@@ -15,21 +17,24 @@ else {
 console.info("Using connection parameters:");
 console.info(JSON.stringify(PARAMS));
 
+function randomString() {
+  var seed = Math.random();
+  return 'rnd' + seed.toString();
+}
+
 var suite = module.exports;
 
 suite.trivialOpenContext = testWithContext(function(done) {
     done();
 });
 
-// Sadly, this is broken in the node-amqp library.
-
-// suite.connectionError = function(done) {
-//     var ctx = createContext('amqp://notauser:surely@localhost');
-//     ctx.on('error', done);
-//     ctx.on('ready', function() {
-//         assert.fail("Expected to fail connection open");
-//     });
-// };
+suite.connectionError = function(done) {
+    var ctx = createContext('amqp://nosuchhost.example.com');
+    ctx.on('error', function () { done() ; });
+    ctx.on('ready', function() {
+         done(new Error("Expected to fail connection open"));
+    });
+};
 
 function withContext(fn) {
     var ctx = createContext(PARAMS);
@@ -40,7 +45,7 @@ function testWithContext(test) {
     return function(done) { // mocha looks at the number of arguments
         withContext(function(ctx) {
             var closeAndDone = function(maybeErr) {
-              ctx.close();
+              setImmediate(ctx.close.bind(ctx));
               done(maybeErr);
             };
             ctx.on('ready', function() { return test(closeAndDone, ctx); });
@@ -199,49 +204,30 @@ suite.allSubs = testWithContext(function(done, CTX) {
     doSub(0);
 });
 
-suite.onePull = testWithContext(function(done, CTX) {
-    // It's very difficult to test that something didn't happen;
-    // however we can serialise sends with recvs to make sure the
-    // whole moves in single steps.
-    var pulls = [CTX.socket('PULL'), CTX.socket('PULL'), CTX.socket('PULL')];
-    var expect = {'start': 'first',
-                  'first': 'second',
-                  'second': 'third',
-                  'third': 'end'};
-    var state = 'start';
+suite.onePerPull = testWithContext(function(done, CTX) {
+    var pulls = [CTX.socket('PULL'),
+                 CTX.socket('PULL'),
+                 CTX.socket('PULL')];
+    var msg = randomString();
+    var latch = 3;
+    var target = 'testOnePerPull';
 
-    function doPull(i) {
-        if (i === pulls.length) {
-            return cont();
-        }
-        var pull = pulls[i];
-        pull.setEncoding('utf8');
-        pull.on('data', function(msg) {
-            assert.equal(expect[state], msg);
-            // make sure we can't make this transition again
-            delete expect[state];
-            state = msg;
-            if (state === 'end')
-                done();
-            else
-                send();
+    for (var i=0; i < pulls.length; i++) {
+        pulls[i].setEncoding('utf8');
+        pulls[i].on('data', function(m) {
+            if (m == msg) {
+                if (--latch === 0) done();
+            }
         });
-        pull.connect('testMultiPull', function() { doPull(i+1); });
+        pulls[i].connect(target);
     }
 
     var push = CTX.socket('PUSH');
-
-    function send() {
-        push.write(expect[state]);
-    }
-
-    function cont() {
-        push.connect('testMultiPull', function() {
-            send();
-        });
-    }
-
-    doPull(0);
+    push.connect(target, function() {
+        for (var i=0; i < pulls.length; i++) {
+            push.write(msg, 'utf8');
+        }
+    });
 });
 
 suite.expiredPush = testWithContext(function(done, CTX){
@@ -251,16 +237,18 @@ suite.expiredPush = testWithContext(function(done, CTX){
   var push = CTX.socket('PUSH');
   var target = 'testExpiration';
 
+  var pre = randomString();
+
   function doPull() {
     setTimeout(function() {
       pull.once('data', function (msg) {
         switch (msg) {
-        case "Expires":
+        case pre + "Expires":
           return done(new Error("Got expired msg"));
-        case "Does not expire":
+        case pre + "Does not expire":
           return done();
-        default:
-          return done(new Error("What even is this msg?"));
+        default: // leftovers
+          return doPull();
         }
       });
       pull.connect(target);
@@ -271,9 +259,9 @@ suite.expiredPush = testWithContext(function(done, CTX){
     // the expiration can be small; the point is, it gets expired well
     // before we connect with the pull socket
     push.setsockopt('expiration', '10');
-    push.write('Expires');
+    push.write(pre + 'Expires');
     push.setsockopt('expiration', undefined);
-    push.write('Does not expire');
+    push.write(pre + 'Does not expire');
   }
 
   push.connect(target, send);
