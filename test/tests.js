@@ -182,6 +182,56 @@ suite.simplestReqRep = testWithContext(function(done, CTX) {
     });
 });
 
+suite.outOfOrderReplies = testWithContext(function(done, CTX) {
+    var req = CTX.socket('REQ');
+    req.setEncoding('utf8');
+    var expect = ['first', 'second', 'third'];
+    req.on('data', function(msg) {
+        if (msg === expect[0]) {
+            expect.shift();
+            if (expect.length == 0) done();
+        }
+        else
+            done(new Error('Message received out of order: ' + msg));
+    });
+
+    var reps = [CTX.socket('REP'),
+                CTX.socket('REP'),
+                CTX.socket('REP')];
+
+    var inOrder = [null, null, null];
+
+    function sendReplies() {
+        inOrder[2].write('third', 'utf8');
+        inOrder[1].write('second', 'utf8');
+        inOrder[0].write('first', 'utf8');
+    }
+
+    function onData(msg) {
+        switch (msg) {
+        case 'one': inOrder[0] = this; break;
+        case 'two': inOrder[1] = this; break;
+        case 'three':
+            inOrder[2] = this;
+            sendReplies();
+            break;
+        }
+    }
+
+    reps.forEach(function(rep) {
+        rep.setEncoding('utf8');
+        rep.on('data', onData.bind(rep));
+        rep.connect('testOutOfOrder');
+    });
+
+    req.connect('testOutOfOrder', function() {
+        req.write('one', 'utf8');
+        req.write('two', 'utf8');
+        req.write('three', 'utf8');
+    });
+
+});
+
 suite.allSubs = testWithContext(function(done, CTX) {
     var subs = [CTX.socket('SUB'), CTX.socket('SUB'), CTX.socket('SUB')];
     var latch = subs.length;
