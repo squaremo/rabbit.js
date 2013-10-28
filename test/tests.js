@@ -63,7 +63,7 @@ suite.endWithoutConnect = testWithContext(function(done, CTX) {
   var sock = CTX.socket('PUB');
   sock.on('error', done);
   sock.on('close', done);
-  sock.end();
+  sock.close();
 });
 
 suite.endWithReadable = testWithContext(function(done, CTX) {
@@ -71,7 +71,7 @@ suite.endWithReadable = testWithContext(function(done, CTX) {
   sock.on('error', done);
   sock.on('close', done);
   sock.connect('testSubEnd', function() {
-    sock.end();
+    sock.close();
   });
 });
 
@@ -80,7 +80,7 @@ suite.endWithWriteable = testWithContext(function(done, CTX) {
   sock.on('error', done);
   sock.on('close', done);
   sock.connect('testPubEnd', function() {
-    sock.end();
+    sock.close();
   });
 });
 
@@ -89,7 +89,7 @@ suite.endWithDuplex = testWithContext(function(done, CTX) {
   sock.on('error', done);
   sock.on('close', done);
   sock.connect('testReqEnd', function() {
-    sock.end();
+    sock.close();
   });
 });
 
@@ -99,7 +99,7 @@ suite.endAwaitsConnects = testWithContext(function(done, CTX) {
   sock.on('close', done);
   sock.connect('testRepEnd');
   sock.connect('testRepEnd2');
-  sock.end();
+  sock.close();
 });
 
 // Test we can happily maintain a rolling set of sockets. The main
@@ -122,10 +122,10 @@ suite.testManySockets = testWithContext(function(done, CTX) {
     s.on('close', latch);
     socks.push(s);
     if (i > WINDOW) {
-      socks.shift().end();
+      socks.shift().close();
     }
   }
-  var s1; while (s1 = socks.shift()) s1.end();
+  var s1; while (s1 = socks.shift()) s1.close();
 });
 
 suite.simplestPushPull = testWithContext(function(done, CTX) {
