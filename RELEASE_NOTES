@@ -17,6 +17,24 @@ implementation using node-amqp abandoned.
 Supports:
  - Node.JS v0.8, v0.10
 
+v0.2.2
+------
+
+Supports:
+ - Node.JS v0.6, v0.8, v0.10
+
+Changes since v0.2.1:
+
+ * Queues and exchanges are cleaned up when sockets are closed
+   (https://github.com/squaremo/rabbit.js/pull/43)
+
+ * Expiration of pub and push messages (via `setsockopt`)
+   (https://github.com/squaremo/rabbit.js/pull/41)
+
+*NB* I expect this to be the last release based on node-amqp. Future
+releases will likely use amqplib; however, I will keep the API
+compatible so far as possible (v0.2.1-amqplib is compatible).
+
 v0.2.1
 ------
 

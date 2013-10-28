@@ -53,6 +53,12 @@ function testWithContext(test) {
     };
 }
 
+suite.closeConnectionWithoutSocket = testWithContext(function(done, CTX) {
+  CTX.on('error', done);
+  CTX.on('close', done);
+  CTX.close();
+});
+
 suite.endWithoutConnect = testWithContext(function(done, CTX) {
   var sock = CTX.socket('PUB');
   sock.on('error', done);
@@ -258,7 +264,7 @@ suite.expiredPush = testWithContext(function(done, CTX){
   function send() {
     // the expiration can be small; the point is, it gets expired well
     // before we connect with the pull socket
-    push.setsockopt('expiration', '10');
+    push.setsockopt('expiration', 10);
     push.write(pre + 'Expires');
     push.setsockopt('expiration', undefined);
     push.write(pre + 'Does not expire');
