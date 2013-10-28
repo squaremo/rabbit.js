@@ -211,10 +211,10 @@ suite.outOfOrderReplies = testWithContext(function(done, CTX) {
         switch (msg) {
         case 'one': inOrder[0] = this; break;
         case 'two': inOrder[1] = this; break;
-        case 'three':
-            inOrder[2] = this;
+        case 'three': inOrder[2] = this; break;
+        }
+        if (inOrder[0] && inOrder[1] && inOrder[2]) {
             sendReplies();
-            break;
         }
     }
 
