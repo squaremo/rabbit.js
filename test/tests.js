@@ -102,6 +102,20 @@ suite.endAwaitsConnects = testWithContext(function(done, CTX) {
   sock.close();
 });
 
+suite.endWithWrite = testWithContext(function(done, CTX) {
+    var msg = randomString();
+    var pull = CTX.socket('PULL');
+    pull.connect('testEndWithWrite');
+    pull.setEncoding('utf8');
+    pull.on('data', function(m) {
+        if (m === msg) done();
+    });
+    var push = CTX.socket('PUSH');
+    push.connect('testEndWithWrite', function() {
+        push.end(msg, 'utf8');
+    });
+});
+
 // Test we can happily maintain a rolling set of sockets. The main
 // concern is leaking event handlers (which node.js shall warn us
 // about).
