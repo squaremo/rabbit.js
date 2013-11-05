@@ -221,7 +221,7 @@ suite.outOfOrderReplies = testWithContext(function(done, CTX) {
         inOrder[0].write('first', 'utf8');
     }
 
-    function onData(msg) {
+    function onData(name, msg) {
         switch (msg) {
         case 'one': inOrder[0] = this; break;
         case 'two': inOrder[1] = this; break;
@@ -232,18 +232,23 @@ suite.outOfOrderReplies = testWithContext(function(done, CTX) {
         }
     }
 
-    reps.forEach(function(rep) {
-        rep.setEncoding('utf8');
-        rep.on('data', onData.bind(rep));
-        rep.connect('testOutOfOrder');
-    });
+    function doConnect(i) {
+        if (i < reps.length) {
+            reps[i].setEncoding('utf8');
+            reps[i].on('data', onData.bind(reps[i], i));
+            reps[i].connect('testOutOfOrder',
+                            doConnect.bind(null, i+1));
+        }
+        else {
+            req.connect('testOutOfOrder', function() {
+                req.write('one', 'utf8');
+                req.write('two', 'utf8');
+                req.write('three', 'utf8');
+            });
+        }
+    }
 
-    req.connect('testOutOfOrder', function() {
-        req.write('one', 'utf8');
-        req.write('two', 'utf8');
-        req.write('three', 'utf8');
-    });
-
+    doConnect(0);
 });
 
 suite.allSubs = testWithContext(function(done, CTX) {
