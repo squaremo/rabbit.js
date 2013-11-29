@@ -26,8 +26,8 @@ context.on('ready', function() {
 Still on major version `0`, though in use in a number of places, I
 believe.
 
-Version 0.3.0 is built on [amqplib][]. Previous versions, of which
-v0.2.2 was the last, used [node-amqp][].
+Version 0.3.0 and on are built on [amqplib][]. Previous versions, of
+which v0.2.2 was the last, used [node-amqp][].
 
 ## Uses
 
