@@ -93,8 +93,8 @@ sub.pipe(process.stdout);
 
 A socket may be connected more than once, by calling
 `socket.connect(x)` with different `x`s. What this entails depends on
-the socket type (see below), but in any case messages to and from
-different `connect()`ions are not distinguished. For example:
+the socket type (see below). Messages to and from different
+`connect()`ions are not distinguished. For example
 
 ```js
 var sub2 = context.socket('SUB');
@@ -181,9 +181,9 @@ var inServer = net.createServer(function(connection) {
 inServer.listen(5000);
 ```
 
-(This is a simplistic example: a bare TCP socket won't in general emit
+This is a simplistic example: a bare TCP socket won't in general emit
 data in chunks that are meaningful to applications, even if they are
-sent that way at the far end.)
+sent that way at the far end.
 
 ## Examples
 
