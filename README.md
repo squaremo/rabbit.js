@@ -73,9 +73,12 @@ sub.connect('alerts');
 
 Sockets are [Streams][nodejs-stream] in object mode, with buffers as
 the objects. In particular, you can `#read()` buffers from those that
-are readable, and you can `#write()` to those that are writable. If
-you're using strings, you can `setEncoding()` to get strings instead
-of buffers as data, and supply the encoding when writing.
+are readable (or supply a callback for the `'data'` event, if you are
+an adherent of the old ways), and you can `#write()` to those that are
+writable.
+
+If you're using strings, you can `setEncoding()` to get strings
+instead of buffers as data, and supply the encoding when writing.
 
 ```js
 sub.setEncoding('utf8');
@@ -107,7 +110,40 @@ Here, the socket `sub2` will receive all messages published to
 it is not possible to distinguish among the sources. If you want to do
 that, use distinct sockets.
 
-#### `Socket#setsockopt`
+#### `Socket#close` and `Socket#end`
+
+A socket may be closed using `#close()`; this will clean up resources,
+and emit `'close'` once it's done so.
+
+A writable socket may be closed with a final write by calling
+`#end([chunk [, encoding]])`. Given no arguments, `#end` is the same
+as `#close`.
+
+### Socket types
+
+The socket type, passed as an argument to `Context#socket`, determines
+whether the socket is readable and writable, and what happens to
+buffers written to it. Socket types are used in the pairs described
+below.
+
+**PUB**lish / **SUB**scribe: every SUB socket connected to <x> gets
+each message sent by a PUB socket connected to <x>; a PUB socket
+sends every message to each of its connections. SUB sockets are
+readable only, and PUB sockets are writable only.
+
+**PUSH** / **PULL**: a PUSH socket will send each message to a
+single connection, using round-robin. A PULL socket will receive a
+share of the messages sent to each <y> to which it is connected,
+determined by round-robin at <y>. PUSH sockets are writable only, and
+PULL sockets are readable only.
+
+**REQ**uest / **REP**ly: a REQ socket sends each message to one of its
+connections, and receives replies in turn; a REP socket receives a
+share of the messages sent to each <y> to which it is connected, and
+must send a reply for each, in the order they come in. REQ and REP
+sockets are both readable and writable.
+
+### `Socket#setsockopt`
 
 Some socket types have options that may be set with
 `#setsockopt`. Presently there's just one option, on PUB, PUSH, REQ
@@ -127,42 +163,6 @@ You need to be careful when using expiry with a **REQ** or **REP**
 socket, since losing a request or reply will break ordering. Only
 sending one request at a time, and giving requests a time limit, may
 help.
-
-#### `Socket#close` and `Socket#end`
-
-A socket may be closed using `#close()`; this will clean up resources,
-and emit `'close'` once it's done so.
-
-A writable socket may be closed with a final write by calling
-`#end([chunk [, encoding]])`.
-
-### Socket types
-
-The socket types, passed as an argument to `Context#socket`,
-determines whether the socket is readable and writable, and what
-happens to buffers written to it. Socket types (but not necessarily
-sockets themselves) should be used in the pairs described below.
-
-To make the descriptions a bit easier, we'll say if `connect(x)` is
-called on a socket for some <x>, the socket is connected to x and x is
-a connection of the socket.
-
-**PUB**lish / **SUB**scribe: every SUB socket connected to <x> gets
-each message sent by a PUB socket connected to <x>; a PUB socket
-sends every message to each of its connections. SUB sockets are
-readable only, and PUB sockets are writable only.
-
-**PUSH** / **PULL**: a PUSH socket will send each message to a
-single connection, using round-robin. A PULL socket will receive a
-share of the messages sent to each <y> to which it is connected,
-determined by round-robin at <y>. PUSH sockets are writable only, and
-PULL sockets are readable only.
-
-**REQ**uest / **REP**ly: a REQ socket sends each message to one of its
-connections, and receives replies in turn; a REP socket receives a
-share of the messages sent to each <y> to which it is connected, and
-must send a reply for each, in the order they come in. REQ and REP
-sockets are both readable and writable.
 
 ## Using with servers
 
