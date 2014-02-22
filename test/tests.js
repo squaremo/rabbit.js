@@ -173,6 +173,23 @@ suite.simplestPubSub = testWithContext(function(done, CTX) {
     });
 });
 
+suite.simplestWorker = testWithContext(function(done, CTX) {
+  var work = CTX.socket('WORKER');
+  work.setEncoding('utf8');
+  var send = CTX.socket('PUSH');
+  var task = randomString();
+  work.on('data', function(msg) {
+    work.ack();
+    assert.ok(msg == task);
+    done();
+  });
+  send.connect('test-worker', function() {
+    work.connect('test-worker', function() {
+      send.write(task, 'utf8');
+    });
+  });
+});
+
 suite.simplestReqRep = testWithContext(function(done, CTX) {
     var req = CTX.socket('REQ');
     var rep = CTX.socket('REP');

@@ -82,7 +82,7 @@ instead of buffers as data, and supply the encoding when writing.
 
 ```js
 sub.setEncoding('utf8');
-sub.on('data', function(note) { console.log("Alarum! " + note); });
+sub.on('data', function(note) { console.log("Alarum! %s", note); });
 
 pub.write("Emergency. There's an emergency going on", 'utf8');
 ```
@@ -143,12 +143,19 @@ share of the messages sent to each <y> to which it is connected, and
 must send a reply for each, in the order they come in. REQ and REP
 sockets are both readable and writable.
 
-### `Socket#setsockopt`
+**PUSH** / **WORKER**: a WORKER socket is similar to a PULL socket,
+but requires that you call `#ack` on it to acknowledge that you have
+processed each message. Any messages left unacknowledged when the
+socket closes, or crashes, will be requeued and delivered to another
+connected socket (should there be one).
+
+#### `Socket#setsockopt`
 
 Some socket types have options that may be set with
-`#setsockopt`. Presently there's just one option, on PUB, PUSH, REQ
-and REP sockets, which is message expiration, given as a number of
-milliseconds:
+`#setsockopt`. Presently there's just two options.
+
+The first is on PUB, PUSH, REQ and REP sockets, which is message
+expiration, given as a number of milliseconds:
 
 ```js
 pub.setsockopt('expiration', 60 * 1000)
@@ -159,10 +166,26 @@ server if they've not been delivered after 60,000
 milliseconds. Message expiration only works with versions of RabbitMQ
 newer than 3.0.0.
 
-You need to be careful when using expiry with a **REQ** or **REP**
-socket, since losing a request or reply will break ordering. Only
+You need to be careful when using expiry with a **WORKER**, **REQ** or
+**REP** socket, since losing a message will break ordering. Only
 sending one request at a time, and giving requests a time limit, may
 help.
+
+The other option is `'prefetch'`, which determines how many messages
+RabbitMQ will send to the socket before waiting for some to be
+processed. This only has a noticable effect for **WORKER** and *REP**
+sockets.
+
+For instance, if you set `'prefetch'` to `1` on a **WORKER** socket,
+RabbitMQ will wait for you to call `#ack` for each message before
+sending another. On a **REP** socket, messages are acknowledged when
+the reply is written (i.e., `#write` doubles as an `#ack`), so
+`'prefetch'` will limit how many replies the socket can have
+outstanding.
+
+If you set it to `0`, RabbitMQ will forget any such
+constraint and just send what it has, when it has it. The default
+value is `0`.
 
 ## Using with servers
 
@@ -245,6 +268,13 @@ when relaying to other streams or protocols. Instead, rabbit.js notes
 the reverse path as messages are relayed to a REP socket, and
 reapplies it when the response appears (giving rise to the ordering
 requirement on replies).
+
+There is no WORKER socket in ZeroMQ; the advice generally given is to
+use a REQ/REP pair and convey acknowledgments back to the requester
+(which is to retry in the case of failure or more likely,
+timeout). Since rabbit.js has RabbitMQ as a reliable intermediary,
+this can be cut short, with acknowledgments and retry handled by
+RabbitMQ.
 
 ## Relation to AMQP and STOMP
 
