@@ -147,7 +147,12 @@ sockets are both readable and writable.
 but requires that you call `#ack` on it to acknowledge that you have
 processed each message. Any messages left unacknowledged when the
 socket closes, or crashes, will be requeued and delivered to another
-connected socket (should there be one).
+connected socket (should there be one). A worker socket is read-only,
+and has the additional method '#ack' which acknowledges the oldest
+unacknowledged message, and must be called once only for each message.
+
+A way to maintain ordering for REP and WORKER sockets is shown in the
+["ordering" example][ordering-example].
 
 #### `Socket#setsockopt`
 
@@ -297,3 +302,4 @@ a `replyTo`, and consider supplying a `correlationId`.
 [amqplib]: https://github.com/squaremo/amqp.node/
 [node-amqp]: https://github.com/postwait/node-amqp/
 [nodejs-stream]: http://nodejs.org/docs/v0.10.21/api/stream.html
+[ordering-example]: https://github.com/squaremo/rabbit.js/tree/master/example/ordering
