@@ -1,6 +1,14 @@
 rabbit.js release notes
 =======================
 
+v0.4.0
+------
+
+This release adds the [WORKER][socket-types] socket.
+
+Supports:
+ - Node.JS v0.8, v0.9, v0.10, v0.11
+
 v0.3.1
 ------
 
@@ -85,3 +93,4 @@ Main changes since v0.2:
 
 
 [amqplib]: https://squaremo.github.com/amqp.node
+[socket-types]: https://github.com/squaremo/rabbit.js#socket-types
