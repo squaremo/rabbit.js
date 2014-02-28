@@ -4,6 +4,8 @@ var fs = require('fs');
 var io = require('socket.io');
 var context = require('../../index').createContext();
 
+var port = process.argv[2] || 8080;
+
 var httpserver = http.createServer(handler);
 
 var socketioserver = io.listen(httpserver);
@@ -13,14 +15,14 @@ socketioserver.sockets.on('connection', function(connection) {
   var sub = context.socket('SUB');
 
   connection.on('disconnect', function() {
-    pub.destroy();
-    sub.destroy();
+    pub.close();
+    sub.close();
   });
 
   // NB we have to adapt between the APIs
   sub.setEncoding('utf8');
   connection.on('message', function(msg) {
-    pub.write(msg);
+    pub.write(msg, 'utf8');
   });
   sub.on('data', function(msg) {
     connection.send(msg);
@@ -29,7 +31,7 @@ socketioserver.sockets.on('connection', function(connection) {
   pub.connect('chat');
 });
 
-httpserver.listen(8080, '0.0.0.0');
+httpserver.listen(port, '0.0.0.0');
 
 // ==== boring detail
 
