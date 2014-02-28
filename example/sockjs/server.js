@@ -17,6 +17,8 @@ var fs = require('fs');
 var sockjs = require('sockjs');
 var context = require('../../index').createContext('amqp://localhost:5672');
 
+var port = process.argv[2] || 8080;
+
 // Create a web server on which we'll serve our demo page, and listen
 // for SockJS connections.
 var httpserver = http.createServer(handler);// Listen for SockJS connections
@@ -38,7 +40,8 @@ context.on('ready', function() {
   // Hook requesting sockets up
   sjs.on('connection', function(connection) {
     var req = context.socket('REQ');
-    connection.on('close', function() { req.destroy(); });
+    // Piping into a SockJS socket means that our REQ socket is closed
+    // when the SockJS socket is, so there's no clean-up needed.
     req.connect('uppercase', function() {
       // ferry requests and responses back and forth
       req.pipe(connection);
@@ -47,7 +50,7 @@ context.on('ready', function() {
   });
 
   // And finally, start the web server.
-  httpserver.listen(8080, '0.0.0.0');
+  httpserver.listen(port, '0.0.0.0');
 });
 
 // ==== boring details
