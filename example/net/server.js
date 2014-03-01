@@ -11,9 +11,8 @@ var net = require('net'),
 
 var inSrv = net.createServer(function(connection) {
   var push = context.socket('PUSH');
-  connection.on('close', function() {
-    push.destroy();
-  });
+  // The net.Socket closing will close our socket too, since it's
+  // upstream.
   push.connect('items', function() {
     connection.pipe(push);
   });
@@ -21,8 +20,10 @@ var inSrv = net.createServer(function(connection) {
 
 var outSrv = net.createServer(function(connection) {
   var pull = context.socket('PULL');
+  // Since we're piping into the net.Socket, we have to manually close
+  // our socket when the downstream closes.
   connection.on('close', function() {
-    pull.destroy();
+    pull.close();
   });
   pull.connect('items', function() {
     pull.pipe(connection);
