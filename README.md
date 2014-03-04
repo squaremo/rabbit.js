@@ -156,8 +156,9 @@ A way to maintain ordering for REP and WORKER sockets is shown in the
 
 #### `Socket#setsockopt`
 
-Some socket types have options that may be set with
-`#setsockopt`. Presently there's just two options.
+Some socket types have options that may be set with `#setsockopt`, or
+given a value in a second, object-valued argument to
+`Context#socket`. Presently there's just two options.
 
 The first is on PUB, PUSH, REQ and REP sockets, which is message
 expiration, given as a number of milliseconds:
@@ -179,7 +180,12 @@ help.
 The other option is `'prefetch'`, which determines how many messages
 RabbitMQ will send to the socket before waiting for some to be
 processed. This only has a noticable effect for **WORKER** and *REP**
-sockets.
+sockets. It is best set when the socket is created, but may be set
+afterwards.
+
+```js
+var worker = ctx.socket('WORKER', {prefetch: 1});
+```
 
 For instance, if you set `'prefetch'` to `1` on a **WORKER** socket,
 RabbitMQ will wait for you to call `#ack` for each message before
