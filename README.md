@@ -157,11 +157,10 @@ A way to maintain ordering for REP and WORKER sockets is shown in the
 #### `Socket#setsockopt`
 
 Some socket types have options that may be set with `#setsockopt`, or
-given a value in a second, object-valued argument to
-`Context#socket`. Presently there's just two options.
+given a value in a second, object-valued argument to `Context#socket`.
 
-The first is on PUB, PUSH, REQ and REP sockets, which is message
-expiration, given as a number of milliseconds:
+The option `'expiration'` may be set on writable sockets, i.e., PUB,
+PUSH, REQ and REP. It is given as a number of milliseconds:
 
 ```js
 pub.setsockopt('expiration', 60 * 1000)
@@ -177,11 +176,10 @@ You need to be careful when using expiry with a **WORKER**, **REQ** or
 sending one request at a time, and giving requests a time limit, may
 help.
 
-The other option is `'prefetch'`, which determines how many messages
-RabbitMQ will send to the socket before waiting for some to be
-processed. This only has a noticable effect for **WORKER** and *REP**
-sockets. It is best set when the socket is created, but may be set
-afterwards.
+The option `'prefetch'`, determines how many messages RabbitMQ will
+send to the socket before waiting for some to be processed. This only
+has a noticable effect for **WORKER** and *REP** sockets. It is best
+set when the socket is created, but may be set afterwards.
 
 ```js
 var worker = ctx.socket('WORKER', {prefetch: 1});
@@ -197,6 +195,22 @@ outstanding.
 If you set it to `0`, RabbitMQ will forget any such
 constraint and just send what it has, when it has it. The default
 value is `0`.
+
+The option `'persistent'` governs the lifetime of messages. Setting it
+to `true` means RabbitMQ will keep messages over restarts, by writing
+them to disk. This is an option for all sockets, and crucially,
+sockets connected to the same address must agree on persistence
+(because they must all declare the server resources with the same
+properties -- an unfortunate technical detail).
+
+In the case of **REQ** and **REP** sockets, the requests may be
+persistent, but replies never are; in other words, `'persistent'`
+applies only to requests.
+
+In the case of **SUB** and **PUB** sockets, `'persistent'` currently
+has no effect, but they may nonetheless have the option set.
+
+See below for what `'persistent'` means in AMQP terms.
 
 ## Using with servers
 
@@ -292,18 +306,27 @@ RabbitMQ.
 rabbit.js makes some simplifying assumptions that must be kept in mind
 when integrating with other protocols that RabbitMQ supports.
 
-PUB and SUB sockets declare non-durable fanout exchanges named for the
+PUB and SUB sockets declare non-durable exchanges named for the
 argument given to `connect`. To send to SUB sockets or receive from
 PUB sockets, publish or bind (or subscribe in the case of STOMP) to
 the exchange with the same name.
 
-PUSH, PULL, REQ and REP sockets use durable, non-exclusive queues
-named for the argument given to `connect`. If you are replying via
-AMQP or STOMP, be sure to follow the convention of sending the
-response to the queue given in the `'replyTo'` property of the request
-message, and copying the `'correlationId'` property from the request
-in the reply. If you are requesting via AMQP or STOMP, at least supply
-a `replyTo`, and consider supplying a `correlationId`.
+PUSH, PULL, REQ and REP sockets use non-exclusive queues named for the
+argument given to `connect`. If you are replying via AMQP or STOMP, be
+sure to follow the convention of sending the response to the queue
+given in the `'replyTo'` property of the request message, and copying
+the `'correlationId'` property from the request in the reply. If you
+are requesting via AMQP or STOMP, at least supply a `replyTo`, and
+consider supplying a `correlationId`.
+
+The option `'persistent'` relates both to the `durable` property of
+queues and to the `deliveryMode` property given to messages. If a
+socket is `persistent`, it will declare queues as `durable`, and send
+messages with `deliveryMode` of `2`. The exceptions are SUB sockets,
+which don't declare their subscription queue as durable, although PUB
+sockets are allowed to publish persistent (`deliveryMode=2`) messages;
+and REQ sockets, which **do** declare the request queue (that they
+send to) as durable, but not their own reply queue.
 
 [amqplib]: https://github.com/squaremo/amqp.node/
 [node-amqp]: https://github.com/postwait/node-amqp/
