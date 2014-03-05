@@ -60,8 +60,8 @@ you or by an error.
 To start sending or receiving messages you need to acquire a socket:
 
 ```js
-var pub = context.socket('PUB');
-var sub = context.socket('SUB');
+var pub = context.socket('PUBLISH');
+var sub = context.socket('SUBSCRIBE');
 ```
 
 and connect it to something:
@@ -109,7 +109,7 @@ the socket type (see below). Messages to and from different
 `connect()`ions are not distinguished. For example
 
 ```js
-var sub2 = context.socket('SUB');
+var sub2 = context.socket('SUBSCRIBE');
 sub2.connect('system');
 sub2.connect('notifications');
 ```
@@ -130,15 +130,15 @@ as `#close`.
 
 ### Socket types
 
-The socket type, passed as an argument to `Context#socket`, determines
-whether the socket is readable and writable, and what happens to
-buffers written to it. Socket types are used in the pairs described
-below.
+The socket type, passed as the first argument to `Context#socket`,
+determines whether the socket is readable and writable, and what
+happens to buffers written to it. Socket types are used in the pairs
+described below.
 
-**PUB**lish / **SUB**scribe: every SUB socket connected to <x> gets
-each message sent by a PUB socket connected to <x>; a PUB socket
-sends every message to each of its connections. SUB sockets are
-readable only, and PUB sockets are writable only.
+**PUBLISH** / **SUBSCRIBE** (also PUB / SUB): every SUB socket
+connected to <x> gets each message sent by a PUB socket connected to
+<x>; a PUB socket sends every message to each of its connections. SUB
+sockets are readable only, and PUB sockets are writable only.
 
 **PUSH** / **PULL**: a PUSH socket will send each message to a
 single connection, using round-robin. A PULL socket will receive a
@@ -146,11 +146,11 @@ share of the messages sent to each <y> to which it is connected,
 determined by round-robin at <y>. PUSH sockets are writable only, and
 PULL sockets are readable only.
 
-**REQ**uest / **REP**ly: a REQ socket sends each message to one of its
-connections, and receives replies in turn; a REP socket receives a
-share of the messages sent to each <y> to which it is connected, and
-must send a reply for each, in the order they come in. REQ and REP
-sockets are both readable and writable.
+**REQUEST** / **REPLY** (also REQ / REP): a REQ socket sends each
+message to one of its connections, and receives replies in turn; a REP
+socket receives a share of the messages sent to each <y> to which it
+is connected, and must send a reply for each, in the order they come
+in. REQ and REP sockets are both readable and writable.
 
 **PUSH** / **WORKER**: a WORKER socket is similar to a PULL socket,
 but requires that you call `#ack` on it to acknowledge that you have
@@ -192,7 +192,7 @@ help.
 
 The option `'prefetch'`, determines how many messages RabbitMQ will
 send to the socket before waiting for some to be processed. This only
-has a noticable effect for **WORKER** and *REP** sockets. It is best
+has a noticable effect for **WORKER** and **REP** sockets. It is best
 set when the socket is created, but may be set any time afterwards.
 
 ```js
