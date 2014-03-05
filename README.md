@@ -210,6 +210,12 @@ applies only to requests.
 In the case of **SUB** and **PUB** sockets, `'persistent'` currently
 has no effect, but they may nonetheless have the option set.
 
+Setting this option to `false` using `#setsockopt` means that the
+messages following will not survive restarts, and any connections made
+while it is `false` will not persist messages. It may be set back
+to `true` of course, but this will not affect connections made in the
+meantime.
+
 See below for what `'persistent'` means in AMQP terms.
 
 ## Using with servers
