@@ -71,6 +71,13 @@ pub.connect('alerts');
 sub.connect('alerts');
 ```
 
+`Context#socket` can take a second argument, which is an object
+containing options to set on the socket at its creation.
+
+```js
+var worker = context.socket('WORKER', {persistent: true});
+```
+
 Sockets are [Streams][nodejs-stream] in object mode, with buffers as
 the objects. In particular, you can `#read()` buffers from those that
 are readable (or supply a callback for the `'data'` event, if you are
@@ -93,6 +100,8 @@ stream, making relaying simple:
 ```js
 sub.pipe(process.stdout);
 ```
+
+#### Connecting sockets
 
 A socket may be connected more than once, by calling
 `socket.connect(x)` with different `x`s. What this entails depends on
@@ -154,13 +163,16 @@ unacknowledged message, and must be called once only for each message.
 A way to maintain ordering for REP and WORKER sockets is shown in the
 ["ordering" example][ordering-example].
 
-#### `Socket#setsockopt`
+#### Socket options
 
-Some socket types have options that may be set with `#setsockopt`, or
-given a value in a second, object-valued argument to `Context#socket`.
+Some socket types have options that may be set at any time with
+`Socket#setsockopt`, or given a value when the socket is created, in
+the second argument to `Context#socket`.
 
-The option `'expiration'` may be set on writable sockets, i.e., PUB,
-PUSH, REQ and REP. It is given as a number of milliseconds:
+##### `expiration`
+
+The option `'expiration'` may be set at any time on writable sockets,
+i.e., PUB, PUSH, REQ and REP. It is given as a number of milliseconds:
 
 ```js
 pub.setsockopt('expiration', 60 * 1000)
@@ -176,10 +188,12 @@ You need to be careful when using expiry with a **WORKER**, **REQ** or
 sending one request at a time, and giving requests a time limit, may
 help.
 
+##### `prefetch`
+
 The option `'prefetch'`, determines how many messages RabbitMQ will
 send to the socket before waiting for some to be processed. This only
 has a noticable effect for **WORKER** and *REP** sockets. It is best
-set when the socket is created, but may be set afterwards.
+set when the socket is created, but may be set any time afterwards.
 
 ```js
 var worker = ctx.socket('WORKER', {prefetch: 1});
@@ -196,6 +210,8 @@ If you set it to `0`, RabbitMQ will forget any such
 constraint and just send what it has, when it has it. The default
 value is `0`.
 
+##### `persistent`
+
 The option `'persistent'` governs the lifetime of messages. Setting it
 to `true` means RabbitMQ will keep messages over restarts, by writing
 them to disk. This is an option for all sockets, and crucially,
@@ -207,8 +223,9 @@ In the case of **REQ** and **REP** sockets, the requests may be
 persistent, but replies never are; in other words, `'persistent'`
 applies only to requests.
 
-In the case of **SUB** and **PUB** sockets, `'persistent'` currently
-has no effect, but they may nonetheless have the option set.
+In the case of **SUB** and **PUB** sockets, `'persistent'` only has
+effect if the **SUB** socket is resumable (see the option
+`'resume_name'` below).
 
 Setting this option to `false` using `#setsockopt` means that the
 messages following will not survive restarts, and any connections made
@@ -217,6 +234,36 @@ to `true` of course, but this will not affect connections made in the
 meantime.
 
 See below for what `'persistent'` means in AMQP terms.
+
+##### `resume_name` and `resume_grace_period`
+
+Using these options when creating a **SUB** socket to keep messages
+accumulating after the socket is closed, so another socket can resume
+reading from where it left off.
+
+The socket must be given a `'resume_name'` which is used to identify the
+connections and messages kept. Successive sockets using the same
+`'resume_name'` will inherit the connections and receive any messages
+sent in the meantime. If the messages are persistent, they will even
+survive restarts.
+
+`'resume_grace_period'`, in milliseconds, is the minimum time that the
+connections and messages will be kept while there is no socket using
+them. After that time, the connections may be cleaned up, losing any
+messages. If not supplied, it defaults to five minutes.
+
+```js
+var sub = context.socket('SUB', {resume_name: 'subs.abc123'});
+sub.connect('events');
+// ...
+sub.close();
+// ... messages are sent to 'events'
+var sub2 = context.socket('SUB', {resume_name: 'subs.abc123'});
+// sub2 will be connected to 'events', and have the messages
+// sent after sub was closed.
+```
+
+See below for what `'resume_*'` mean in AMQP terms.
 
 ## Using with servers
 
@@ -312,27 +359,45 @@ RabbitMQ.
 rabbit.js makes some simplifying assumptions that must be kept in mind
 when integrating with other protocols that RabbitMQ supports.
 
-PUB and SUB sockets declare non-durable exchanges named for the
-argument given to `connect`. To send to SUB sockets or receive from
-PUB sockets, publish or bind (or subscribe in the case of STOMP) to
-the exchange with the same name.
+PUB and SUB sockets declare exchanges named for the argument given to
+`#connect`. The exchange is durable if the PUB or SUB socket is marked
+`persistent`, so that bindings will survive if the subscription queue
+does, and `autoDelete`, so it doesn't survive otherwise.
+
+To send to SUB sockets or receive from PUB sockets, publish or bind
+(or subscribe in the case of STOMP) to the exchange with the same name
+as given to `#connect`.
 
 PUSH, PULL, REQ and REP sockets use non-exclusive queues named for the
-argument given to `connect`. If you are replying via AMQP or STOMP, be
-sure to follow the convention of sending the response to the queue
-given in the `'replyTo'` property of the request message, and copying
-the `'correlationId'` property from the request in the reply. If you
+argument given to `#connect`. If you are replying via AMQP or STOMP,
+be sure to follow the convention of sending the response to the queue
+given in the `replyTo` property of the request message, and copying
+the `correlationId` property from the request in the reply. If you
 are requesting via AMQP or STOMP, at least supply a `replyTo`, and
 consider supplying a `correlationId`.
 
 The option `'persistent'` relates both to the `durable` property of
 queues and to the `deliveryMode` property given to messages. If a
 socket is `persistent`, it will declare queues as `durable`, and send
-messages with `deliveryMode` of `2`. The exceptions are SUB sockets,
-which don't declare their subscription queue as durable, although PUB
-sockets are allowed to publish persistent (`deliveryMode=2`) messages;
-and REQ sockets, which **do** declare the request queue (that they
-send to) as durable, but not their own reply queue.
+messages with `deliveryMode` of `2`.
+
+The exceptions are SUB sockets, which won't declare their subscription
+queue as durable unless they are persistent **and** resumable,
+although PUB sockets are allowed to publish persistent
+(`deliveryMode=2`) messages; and REQ sockets, which **do** declare the
+request queue (that they send to) as durable, but not their own reply
+queue.
+
+The option `'resume_name'` changes the nature of the queue declared by
+a SUB socket: instead of being auto-delete and exclusive (to the
+connection), and getting a server-generated random name, it is given
+the name `'resume_name'` and is not auto-delete or exclusive, so it
+survives the channel closing and the AMQP connection
+dropping.
+
+`'resume_grace_period'` corresponds to the queue property `x-expires`,
+a RabbitMQ extension (available since v2.0.0).
+
 
 [amqplib]: https://github.com/squaremo/amqp.node/
 [node-amqp]: https://github.com/postwait/node-amqp/
