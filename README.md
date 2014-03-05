@@ -157,7 +157,7 @@ but requires that you call `#ack` on it to acknowledge that you have
 processed each message. Any messages left unacknowledged when the
 socket closes, or crashes, will be requeued and delivered to another
 connected socket (should there be one). A worker socket is read-only,
-and has the additional method '#ack' which acknowledges the oldest
+and has the additional method `#ack` which acknowledges the oldest
 unacknowledged message, and must be called once only for each message.
 
 A way to maintain ordering for REP and WORKER sockets is shown in the
