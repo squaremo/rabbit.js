@@ -167,6 +167,7 @@ suite.simplestPubSub = testWithContext(function(done, CTX) {
     });
 
     sub.connect('testPubSub', function() {
+        sub.subscribe();
         pub.connect('testPubSub', function() {
             pub.write('foo');
         });
@@ -283,7 +284,10 @@ suite.allSubs = testWithContext(function(done, CTX) {
             latch--;
             if (latch === 0) done();
         });
-        sub.connect('testMultiSub', function() { doSub(i+1); });
+        sub.connect('testMultiSub', function() {
+          sub.subscribe();
+          doSub(i+1);
+        });
     }
 
     function cont() {
@@ -383,26 +387,4 @@ suite.queueError = testWithContext(function(done, CTX) {
     done();
   });
   sock.connect('amq.reserved-namespace');
-});
-
-suite.redeclareExchangeError = testWithContext(function(done, CTX) {
-  var sock1 = CTX.socket('PUB');
-  sock1.on('error', function(e) {
-    assert.fail('This socket should succeed');
-  });
-  var sock2 = CTX.socket('PUB');
-  sock2.on('error', function(e) {
-    assert.ok(!sock2.writable);
-    assert.ok(sock1.writable);
-    done();
-  });
-
-  sock1.connect({
-    exchange: 'test-redeclare-error',
-    routing: 'topic'
-  }, function() {
-    sock2.connect({exchange: 'test-redeclare-error',
-                   routing: 'direct'});
-    sock1.write('foobar');
-  });
 });

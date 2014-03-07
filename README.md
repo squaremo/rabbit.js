@@ -11,6 +11,7 @@ var context = require('rabbit.js').createContext();
 context.on('ready', function() {
   var pub = context.socket('PUB'), sub = context.socket('SUB');
   sub.pipe(process.stdout);
+  sub.subscribe('');
   sub.connect('events', function() {
     pub.connect('events', function() {
       pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
@@ -136,9 +137,12 @@ happens to buffers written to it. Socket types are used in the pairs
 described below.
 
 **PUBLISH** / **SUBSCRIBE** (also PUB / SUB): every SUB socket
-connected to <x> gets each message sent by a PUB socket connected to
-<x>; a PUB socket sends every message to each of its connections. SUB
-sockets are readable only, and PUB sockets are writable only.
+connected to <x> gets messages sent by a PUB socket connected to <x>;
+a PUB socket sends every message to each of its connections. SUB
+sockets are readable only, and PUB sockets are writable only. The
+messages actually received are determined by the subscriptions of the
+SUB socket and the topic used by the PUB socket -- see "Subscriptions"
+below.
 
 **PUSH** / **PULL**: a PUSH socket will send each message to a
 single connection, using round-robin. A PULL socket will receive a
@@ -163,11 +167,52 @@ unacknowledged message, and must be called once only for each message.
 A way to maintain ordering for REP and WORKER sockets is shown in the
 ["ordering" example][ordering-example].
 
+#### Subscriptions
+
+**PUB** and **SUB** sockets have an extra feature: the messages sent
+  by a PUB socket are routed to SUB sockets according to a topic given
+  by the PUB socket, and topic patterns given by the SUB socket.
+
+A PUB socket may set its `'topic'` using `#setsockopt('topic',
+string)`. All messages sent with `#write` will use that
+topic. Alternatively, you can use `#publish(topic, message,
+[encoding])` to given the topic per message.
+
+A SUB socket must call `#subscribe(string)` **at least once** to
+receive messages. The argument is a pattern that is matched against
+message topics; how the matching is done depends on the `'routing'`
+option given to the sockets (they must agree on the value):
+
+ - `'fanout'` is the default and means all messages go to all SUB
+   sockets, regardless of the topic or subscription.
+ - `'direct'` means that message topics are matched with subscriptions
+   using string equality.
+ - `'topic'` uses AMQP's wildcard matching; briefly, a topic consists
+   of `'.'`-delimited words, and a pattern is the same but contain
+   wilcards, `'*'` meaning "any single word" and `'#'` meaning "any
+   sequence of words". So, the pattern `"*.bar.#"` will match the
+   topic `foo.bar.baz.bam"`. There's a longer explanation in the
+   RabbitMQ [tutorial on topic matching][rabbitmq-topic-tute].
+
+Leaving all the options alone, all SUB sockets connected to X will get
+all messages sent by PUB sockets connected to X, provided
+`#subscribe()` is called on each SUB socket.
+
 #### Socket options
 
 Some socket types have options that may be set at any time with
 `Socket#setsockopt`, or given a value when the socket is created, in
 the second argument to `Context#socket`.
+
+##### `routing` and `topic`
+
+`routing` is supplied to a **PUB** or **SUB** socket on creation, and
+determines the kind of patterns it will use to match messages to
+subscriptions. Sockets connected to the same address must agree on the
+routing.
+
+`topic` may be set on a **PUB** socket to give the topic for messages
+sent using `#write`.
 
 ##### `expiration`
 
@@ -403,3 +448,4 @@ a RabbitMQ extension (available since v2.0.0).
 [node-amqp]: https://github.com/postwait/node-amqp/
 [nodejs-stream]: http://nodejs.org/docs/v0.10.21/api/stream.html
 [ordering-example]: https://github.com/squaremo/rabbit.js/tree/master/example/ordering
+[rabbitmq-topic-tute]: http://www.rabbitmq.com/tutorials/tutorial-five-python.html
