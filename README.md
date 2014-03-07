@@ -241,11 +241,11 @@ Using these options when creating a **SUB** socket to keep messages
 accumulating after the socket is closed, so another socket can resume
 reading from where it left off.
 
-The socket must be given a `'resume_name'` which is used to identify the
-connections and messages kept. Successive sockets using the same
-`'resume_name'` will inherit the connections and receive any messages
-sent in the meantime. If the messages are persistent, they will even
-survive restarts.
+The socket must be given a `'resume_name'` which is used to identify
+the connections and messages kept. Successive sockets using the same
+`'resume_name'` will receive any messages sent in the meantime. If the
+socket is persistent, the connections and messages will survive
+restarts.
 
 `'resume_grace_period'`, in milliseconds, is the minimum time that the
 connections and messages will be kept while there is no socket using
