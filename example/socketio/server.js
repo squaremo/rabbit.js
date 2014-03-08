@@ -28,6 +28,7 @@ socketioserver.sockets.on('connection', function(connection) {
     connection.send(msg);
   });
   sub.connect('chat');
+  sub.subscribe('');
   pub.connect('chat');
 });
 
