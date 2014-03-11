@@ -167,11 +167,27 @@ suite.simplestPubSub = testWithContext(function(done, CTX) {
     });
 
     sub.connect('testPubSub', function() {
-        sub.subscribe();
         pub.connect('testPubSub', function() {
             pub.write('foo');
         });
     });
+});
+
+suite.topicPubSub = testWithContext(function(done, CTX) {
+  var pub = CTX.socket('PUB', {routing: 'topic'});
+  var sub = CTX.socket('SUB', {routing: 'topic'});
+  sub.setEncoding('utf8');
+  var content = randomString();
+  sub.on('data', function(msg) {
+    try { assert.equal(content, msg); done(); }
+    catch (e) { done(e); }
+  });
+
+  sub.connect('testTopicPubSub', 'foo.*', function() {
+    pub.connect('testTopicPubSub', function() {
+      pub.publish('foo.bar', content, 'utf8');
+    });
+  });
 });
 
 suite.simplestWorker = testWithContext(function(done, CTX) {
@@ -285,7 +301,6 @@ suite.allSubs = testWithContext(function(done, CTX) {
             if (latch === 0) done();
         });
         sub.connect('testMultiSub', function() {
-          sub.subscribe();
           doSub(i+1);
         });
     }
