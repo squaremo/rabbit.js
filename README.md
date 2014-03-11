@@ -11,7 +11,6 @@ var context = require('rabbit.js').createContext();
 context.on('ready', function() {
   var pub = context.socket('PUB'), sub = context.socket('SUB');
   sub.pipe(process.stdout);
-  sub.subscribe('');
   sub.connect('events', function() {
     pub.connect('events', function() {
       pub.write(JSON.stringify({welcome: 'rabbit.js'}), 'utf8');
@@ -140,9 +139,9 @@ described below.
 connected to <x> gets messages sent by a PUB socket connected to <x>;
 a PUB socket sends every message to each of its connections. SUB
 sockets are readable only, and PUB sockets are writable only. The
-messages actually received are determined by the subscriptions of the
-SUB socket and the topic used by the PUB socket -- see "Subscriptions"
-below.
+messages actually received are determined by the parameters with which
+the SUB socket is connected, and the topic used by the PUB socket --
+see "Topics" below.
 
 **PUSH** / **PULL**: a PUSH socket will send each message to a
 single connection, using round-robin. A PULL socket will receive a
@@ -167,36 +166,37 @@ unacknowledged message, and must be called once only for each message.
 A way to maintain ordering for REP and WORKER sockets is shown in the
 ["ordering" example][ordering-example].
 
-#### Subscriptions
+#### Topics and topic patterns
 
 **PUB** and **SUB** sockets have an extra feature: the messages sent
-  by a PUB socket are routed to SUB sockets according to a topic given
-  by the PUB socket, and topic patterns given by the SUB socket.
+by a PUB socket are routed to SUB sockets according to a topic given
+by the PUB socket, and topic patterns given by the SUB socket.
 
 A PUB socket may set its `'topic'` using `#setsockopt('topic',
 string)`. All messages sent with `#write` will use that
 topic. Alternatively, you can use `#publish(topic, message,
-[encoding])` to given the topic per message.
+[encoding])` to give the topic per message.
 
-A SUB socket must call `#subscribe(string)` **at least once** to
-receive messages. The argument is a pattern that is matched against
-message topics; how the matching is done depends on the `'routing'`
-option given to the sockets (they must agree on the value):
+A SUB socket may pass in an additional parameter, in the second
+position, to `#connect`. This extra argument is a pattern that is
+matched against message topics; how the matching is done depends on
+the `'routing'` option given to the sockets (they must agree on the
+value):
 
  - `'fanout'` is the default and means all messages go to all SUB
-   sockets, regardless of the topic or subscription.
- - `'direct'` means that message topics are matched with subscriptions
+   sockets, regardless of the topic or topic pattern.
+ - `'direct'` means that message topics are matched with patterns
    using string equality.
- - `'topic'` uses AMQP's wildcard matching; briefly, a topic consists
-   of `'.'`-delimited words, and a pattern is the same but contain
-   wilcards, `'*'` meaning "any single word" and `'#'` meaning "any
+ - `'topic'` uses AMQP's wildcard matching: briefly, a topic consists
+   of `'.'`-delimited words, and a pattern is the same but may contain
+   wildcards, `'*'` meaning "any single word" and `'#'` meaning "any
    sequence of words". So, the pattern `"*.bar.#"` will match the
    topic `foo.bar.baz.bam"`. There's a longer explanation in the
    RabbitMQ [tutorial on topic matching][rabbitmq-topic-tute].
 
-Leaving all the options alone, all SUB sockets connected to X will get
-all messages sent by PUB sockets connected to X, provided
-`#subscribe()` is called on each SUB socket.
+Leaving all the options alone, and using only the two-argument version
+of `#connect`, all SUB sockets connected to X will get all messages
+sent by PUB sockets connected to X.
 
 #### Socket options
 
@@ -207,12 +207,12 @@ the second argument to `Context#socket`.
 ##### `routing` and `topic`
 
 `routing` is supplied to a **PUB** or **SUB** socket on creation, and
-determines the kind of patterns it will use to match messages to
-subscriptions. Sockets connected to the same address must agree on the
-routing.
+determines how it will match topics to topic patterns, as described
+under "Topics". Sockets connected to the same address must agree on
+the routing.
 
-`topic` may be set on a **PUB** socket to give the topic for messages
-sent using `#write`.
+`topic` may be set on a **PUB** socket to give the topic for
+subsequent messages sent using `#write`.
 
 ##### `expiration`
 
@@ -405,9 +405,9 @@ rabbit.js makes some simplifying assumptions that must be kept in mind
 when integrating with other protocols that RabbitMQ supports.
 
 PUB and SUB sockets declare exchanges named for the argument given to
-`#connect`. The exchange is durable if the PUB or SUB socket is marked
-`persistent`, so that bindings will survive if the subscription queue
-does, and `autoDelete`, so it doesn't survive otherwise.
+`#connect` and with the type given by the `'routing'` option. If a
+`topic` argument is given to `#connect`, it's used as the routing key
+pattern, otherwise `''` is used.
 
 To send to SUB sockets or receive from PUB sockets, publish or bind
 (or subscribe in the case of STOMP) to the exchange with the same name
