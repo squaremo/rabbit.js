@@ -1,7 +1,7 @@
 {
   "name": "rabbit.js",
   "description": "Easy stream-based messaging using RabbitMQ",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "homepage": "http://github.com/squaremo/rabbit.js",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
     "test": "./node_modules/mocha/bin/mocha --ui exports test"
   },
   "engines": {
-    "node": "0.8 || 0.10"
+    "node": "0.8 || 0.9 || 0.10 || 0.11"
   },
   "dependencies": {
     "amqplib": "0.1",
