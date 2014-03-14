@@ -12,6 +12,9 @@ This release adds:
  * The socket option 'persistent' for making messages survive server
    restarts
 
+Supports:
+ - Node.JS v0.8, v0.9, v0.10, v0.11
+
 v0.4.0
 ------
 
