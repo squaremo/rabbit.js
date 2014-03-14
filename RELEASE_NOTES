@@ -1,6 +1,17 @@
 rabbit.js release notes
 =======================
 
+v0.4.1
+------
+
+This release adds:
+
+ * The socket option 'topic' and PubSocket#publish() for sending
+   messages with topics
+ * The ability to specify topic matching when using a SUB socket.
+ * The socket option 'persistent' for making messages survive server
+   restarts
+
 v0.4.0
 ------
 

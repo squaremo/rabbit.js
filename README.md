@@ -224,6 +224,8 @@ You need to be careful when using expiry with a **WORKER**, **REQ** or
 sending one request at a time, and giving requests a time limit, may
 help.
 
+##### `prefetch`
+
 The option `'prefetch'`, determines how many messages RabbitMQ will
 send to the socket before waiting for some to be processed. This only
 has a noticable effect for **WORKER** and **REP** sockets. It is best
@@ -243,6 +245,8 @@ outstanding.
 If you set it to `0`, RabbitMQ will forget any such
 constraint and just send what it has, when it has it. The default
 value is `0`.
+
+##### `persistent`
 
 The option `'persistent'` governs the lifetime of messages. Setting it
 to `true` means RabbitMQ will keep messages over restarts, by writing
