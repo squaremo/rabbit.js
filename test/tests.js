@@ -97,9 +97,11 @@ suite.endAwaitsConnects = testWithContext(function(done, CTX) {
   var sock = CTX.socket('REP');
   sock.on('error', done);
   sock.on('close', done);
-  sock.connect('testRepEnd');
-  sock.connect('testRepEnd2');
-  sock.close();
+  sock.connect('testRepEnd', function() {
+    sock.connect('testRepEnd2', function() {
+      sock.close();
+    });
+  });
 });
 
 suite.endWithWrite = testWithContext(function(done, CTX) {
@@ -122,7 +124,8 @@ suite.endWithWrite = testWithContext(function(done, CTX) {
 suite.testManySockets = testWithContext(function(done, CTX) {
   var WINDOW = 10;
   var socks = [];
-  var types = ['PUB', 'SUB', 'PUSH', 'PULL', 'REQ', 'REP'];
+  var types = ['PUB', 'SUB', 'PUSH', 'PULL',
+               'REQ', 'REP', 'WORKER'];
   var total = WINDOW * 10;
   var ended = 0;
   function latch() {
@@ -132,9 +135,9 @@ suite.testManySockets = testWithContext(function(done, CTX) {
   for (var i = 0; i < total; i++) {
     var t = types.shift(); types.push(t);
     var s = CTX.socket(t);
-    s.connect('testManySockets');
     s.on('close', latch);
     socks.push(s);
+    s.connect('testManySockets');
     if (i > WINDOW) {
       socks.shift().close();
     }
@@ -145,14 +148,15 @@ suite.testManySockets = testWithContext(function(done, CTX) {
 suite.simplestPushPull = testWithContext(function(done, CTX) {
     var push = CTX.socket('PUSH');
     var pull = CTX.socket('PULL');
+    var msg = randomString();
     pull.setEncoding('utf8');
-    pull.on('data', function(msg) {
-        assert.equal('foo', msg);
+    pull.on('data', function(m) {
+        assert.equal(msg, m);
         done();
     });
 
     push.connect('testPushPull', function() {
-      push.write('foo');
+      push.write(msg);
       pull.connect('testPushPull');
     });
 });
