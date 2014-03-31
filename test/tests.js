@@ -2,6 +2,7 @@ var assert = require('assert');
 
 var createContext = require('../index').createContext;
 
+var delay = global.setImmediate || process.nextTick;
 
 var PARAMS = process.env['AMQP_PARAMS'];
 if (PARAMS) {
@@ -45,7 +46,7 @@ function testWithContext(test) {
     return function(done) { // mocha looks at the number of arguments
         withContext(function(ctx) {
             var closeAndDone = function(maybeErr) {
-              setImmediate(ctx.close.bind(ctx));
+              delay(ctx.close.bind(ctx));
               done(maybeErr);
             };
             ctx.on('ready', function() { return test(closeAndDone, ctx); });
