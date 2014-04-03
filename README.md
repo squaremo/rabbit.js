@@ -19,6 +19,11 @@ context.on('ready', function() {
 });
 ```
 
+**NB** This README is provisional, in that it follows the master
+branch and may be inaccurate with respect to released versions of
+rabbit.js. See NPM for the documentation of the most recent release:
+https://www.npmjs.org/package/rabbit.js#readme.
+
 *Yes, rather like ZeroMQ. [See below](#zeromq).
 
 ## Status
