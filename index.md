@@ -143,13 +143,19 @@ socket receives a share of the messages sent to each <y> to which it
 is connected, and must send a reply for each, in the order they come
 in. REQ and REP sockets are both readable and writable.
 
-**PUSH** / **WORKER**: a WORKER socket is similar to a PULL socket,
-but requires that you call `#ack` on it to acknowledge that you have
-processed each message. Any messages left unacknowledged when the
-socket closes, or crashes, will be requeued and delivered to another
-connected socket (should there be one). A worker socket is read-only,
-and has the additional method `#ack` which acknowledges the oldest
-unacknowledged message, and must be called once only for each message.
+**TASK** / **WORKER**: a TASK socket is connected to one or more
+varieties of task, one of which is selected for each message. The task
+is selected with the socket option `'task'`. Alternatively, each TASK
+socket has the additional method `#post` which is used to supply the
+task and the message at the same time.
+
+A WORKER socket is similar to a PULL socket, but requires that you
+call `#ack` on it to acknowledge that you have processed each
+message. Any messages left unacknowledged when the socket closes, or
+crashes, will be requeued and delivered to another connected socket
+(should there be one). A worker socket is read-only, and has the
+additional method `#ack` which acknowledges the oldest unacknowledged
+message, and must be called once only for each message.
 
 A way to maintain ordering for REP and WORKER sockets is shown in the
 ["ordering" example][ordering-example].
@@ -200,6 +206,11 @@ under "Topics". Sockets connected to the same address must agree on
 the routing.
 
 `topic` may be set on a **PUB** socket to give the topic for
+subsequent messages sent using `#write`.
+
+##### `task`
+
+The option `task` is used on a **TASK** socket to select the task for
 subsequent messages sent using `#write`.
 
 ##### `expiration`
@@ -368,15 +379,18 @@ pattern, otherwise `''` is used.
 
 To send to SUB sockets or receive from PUB sockets, publish or bind
 (or subscribe in the case of STOMP) to the exchange with the same name
-as given to `#connect`.
+as given to `#connect` and the exchange type given in the `routing`
+option.
 
-PUSH, PULL, REQ and REP sockets use non-exclusive queues named for the
-argument given to `connect`. If you are replying via AMQP or STOMP, be
-sure to follow the convention of sending the response to the queue
-given in the `'replyTo'` property of the request message, and copying
-the `'correlationId'` property from the request in the reply. If you
-are requesting via AMQP or STOMP, at least supply a `replyTo`, and
-consider supplying a `correlationId`.
+PUSH, PULL, TASK, WORKER, REQ and REP sockets use non-exclusive queues
+named for the argument given to `connect`.
+
+If you are replying to a REQ socket via AMQP or STOMP, be sure to
+follow the convention of sending the response to the queue given in
+the `'replyTo'` property of the request message, and copying the
+`'correlationId'` property from the request in the reply. If you are
+REQuesting via AMQP or STOMP, at least supply a `replyTo`, and
+consider supplying a `correlationId`, so you can reorder responses.
 
 The option `'persistent'` relates both to the `durable` property of
 queues and to the `deliveryMode` property given to messages. If a
