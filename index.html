@@ -1,0 +1,454 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>rabbit.js by squaremo</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>rabbit.js</h1>
+        <p>Messaging in Node.JS made easy using RabbitMQ</p>
+
+        <p class="view"><a href="https://github.com/squaremo/rabbit.js">View the Project on GitHub <small>squaremo/rabbit.js</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/squaremo/rabbit.js/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/squaremo/rabbit.js/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/squaremo/rabbit.js">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="messaging-in-nodejs-with-rabbitmq" class="anchor" href="#messaging-in-nodejs-with-rabbitmq"><span class="octicon octicon-link"></span></a>Messaging in Node.JS with RabbitMQ</h1>
+
+<pre><code>$ npm install rabbit.js
+</code></pre>
+
+<p>This library provides a simple, socket-oriented API* for messaging in
+<a href="http://nodejs.org/">Node.JS</a>, using
+<a href="http://www.rabbitmq.com/">RabbitMQ</a> as a backend.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">context</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'rabbit.js'</span><span class="p">).</span><span class="nx">createContext</span><span class="p">();</span>
+<span class="nx">context</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'ready'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">pub</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">socket</span><span class="p">(</span><span class="s1">'PUB'</span><span class="p">),</span> <span class="nx">sub</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">socket</span><span class="p">(</span><span class="s1">'SUB'</span><span class="p">);</span>
+  <span class="nx">sub</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">);</span>
+  <span class="nx">sub</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">'events'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">pub</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">'events'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">pub</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="nx">welcome</span><span class="o">:</span> <span class="s1">'rabbit.js'</span><span class="p">}),</span> <span class="s1">'utf8'</span><span class="p">);</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><strong>NB</strong> This README is provisional, in that it follows the master
+branch and may be inaccurate with respect to released versions of
+rabbit.js. See NPM for the documentation of the most recent release:
+<a href="https://www.npmjs.org/package/rabbit.js#readme">https://www.npmjs.org/package/rabbit.js#readme</a>.</p>
+
+<p>*Yes, rather like ZeroMQ. <a href="#zeromq">See below</a>.</p>
+
+<h2>
+<a name="status" class="anchor" href="#status"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<p>Still on major version <code>0</code>, though in use in a number of places, I
+believe.</p>
+
+<p>Version 0.3.0 and on are built on <a href="https://github.com/squaremo/amqp.node/">amqplib</a>. Previous versions, of
+which v0.2.2 was the last, used <a href="https://github.com/postwait/node-amqp/">node-amqp</a>.</p>
+
+<h2>
+<a name="uses" class="anchor" href="#uses"><span class="octicon octicon-link"></span></a>Uses</h2>
+
+<p>This library is suitable for co-ordinating peers (e.g., Node.JS
+programs), acting as a gateway to other kinds of network (e.g.,
+relaying to browsers via SockJS), and otherwise as a really easy way
+to use RabbitMQ.</p>
+
+<h2>
+<a name="api" class="anchor" href="#api"><span class="octicon octicon-link"></span></a>API</h2>
+
+<p>The entry point is <code>createContext</code>, which gives you a factory for
+sockets. You supply it the URL to your RabbitMQ server:</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">context</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'rabbit.js'</span><span class="p">).</span><span class="nx">createContext</span><span class="p">(</span><span class="s1">'amqp://localhost'</span><span class="p">);</span>
+</pre></div>
+
+<p>The context will emit <code>'ready'</code> when it's connected.</p>
+
+<p>A context will emit <code>'error'</code> with an <code>Error</code> object if there's a
+problem with the underlying connection to the server. This invalidates
+the context and all its sockets.</p>
+
+<p>A context may be disconnected from the server with <code>#close()</code>. It will
+emit <code>'close'</code> once the underlying connection has been terminated, by
+you or by an error.</p>
+
+<h3>
+<a name="sockets" class="anchor" href="#sockets"><span class="octicon octicon-link"></span></a>Sockets</h3>
+
+<p>To start sending or receiving messages you need to acquire a socket:</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">pub</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">socket</span><span class="p">(</span><span class="s1">'PUBLISH'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">sub</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">socket</span><span class="p">(</span><span class="s1">'SUBSCRIBE'</span><span class="p">);</span>
+</pre></div>
+
+<p>and connect it to something:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">pub</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">'alerts'</span><span class="p">);</span>
+<span class="nx">sub</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">'alerts'</span><span class="p">);</span>
+</pre></div>
+
+<p>Sockets are <a href="http://nodejs.org/docs/v0.10.21/api/stream.html">Streams</a> in object mode, with buffers as
+the objects. In particular, you can <code>#read()</code> buffers from those that
+are readable (or supply a callback for the <code>'data'</code> event, if you are
+an adherent of the old ways), and you can <code>#write()</code> to those that are
+writable.</p>
+
+<p>If you're using strings, you can <code>setEncoding()</code> to get strings
+instead of buffers as data, and supply the encoding when writing.</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">sub</span><span class="p">.</span><span class="nx">setEncoding</span><span class="p">(</span><span class="s1">'utf8'</span><span class="p">);</span>
+<span class="nx">sub</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'data'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">note</span><span class="p">)</span> <span class="p">{</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Alarum! %s"</span><span class="p">,</span> <span class="nx">note</span><span class="p">);</span> <span class="p">});</span>
+
+<span class="nx">pub</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="s2">"Emergency. There's an emergency going on"</span><span class="p">,</span> <span class="s1">'utf8'</span><span class="p">);</span>
+</pre></div>
+
+<p>You can also use <code>#pipe</code> to forward messages to or from another
+stream, making relaying simple:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">sub</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">);</span>
+</pre></div>
+
+<p>A socket may be connected more than once, by calling
+<code>socket.connect(x)</code> with different <code>x</code>s. What this entails depends on
+the socket type (see below). Messages to and from different
+<code>connect()</code>ions are not distinguished. For example</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">sub2</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">socket</span><span class="p">(</span><span class="s1">'SUBSCRIBE'</span><span class="p">);</span>
+<span class="nx">sub2</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">'system'</span><span class="p">);</span>
+<span class="nx">sub2</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">'notifications'</span><span class="p">);</span>
+</pre></div>
+
+<p>Here, the socket <code>sub2</code> will receive all messages published to
+<code>'system'</code> and all those published to <code>'notifications'</code> as well, but
+it is not possible to distinguish among the sources. If you want to do
+that, use distinct sockets.</p>
+
+<h4>
+<a name="socketclose-and-socketend" class="anchor" href="#socketclose-and-socketend"><span class="octicon octicon-link"></span></a><code>Socket#close</code> and <code>Socket#end</code>
+</h4>
+
+<p>A socket may be closed using <code>#close()</code>; this will clean up resources,
+and emit <code>'close'</code> once it's done so.</p>
+
+<p>A writable socket may be closed with a final write by calling
+<code>#end([chunk [, encoding]])</code>. Given no arguments, <code>#end</code> is the same
+as <code>#close</code>.</p>
+
+<h3>
+<a name="socket-types" class="anchor" href="#socket-types"><span class="octicon octicon-link"></span></a>Socket types</h3>
+
+<p>The socket type, passed as the first argument to <code>Context#socket</code>,
+determines whether the socket is readable and writable, and what
+happens to buffers written to it. Socket types are used in the pairs
+described below.</p>
+
+<p><strong>PUBLISH</strong> / <strong>SUBSCRIBE</strong> (also PUB / SUB): every SUB socket
+connected to  gets messages sent by a PUB socket connected to ;
+a PUB socket sends every message to each of its connections. SUB
+sockets are readable only, and PUB sockets are writable only. The
+messages actually received are determined by the parameters with which
+the SUB socket is connected, and the topic used by the PUB socket --
+see "Topics" below.</p>
+
+<p><strong>PUSH</strong> / <strong>PULL</strong>: a PUSH socket will send each message to a
+single connection, using round-robin. A PULL socket will receive a
+share of the messages sent to each  to which it is connected,
+determined by round-robin at . PUSH sockets are writable only, and
+PULL sockets are readable only.</p>
+
+<p><strong>REQUEST</strong> / <strong>REPLY</strong> (also REQ / REP): a REQ socket sends each
+message to one of its connections, and receives replies in turn; a REP
+socket receives a share of the messages sent to each  to which it
+is connected, and must send a reply for each, in the order they come
+in. REQ and REP sockets are both readable and writable.</p>
+
+<p><strong>PUSH</strong> / <strong>WORKER</strong>: a WORKER socket is similar to a PULL socket,
+but requires that you call <code>#ack</code> on it to acknowledge that you have
+processed each message. Any messages left unacknowledged when the
+socket closes, or crashes, will be requeued and delivered to another
+connected socket (should there be one). A worker socket is read-only,
+and has the additional method <code>#ack</code> which acknowledges the oldest
+unacknowledged message, and must be called once only for each message.</p>
+
+<p>A way to maintain ordering for REP and WORKER sockets is shown in the
+<a href="https://github.com/squaremo/rabbit.js/tree/master/example/ordering">"ordering" example</a>.</p>
+
+<h4>
+<a name="topics-and-topic-patterns" class="anchor" href="#topics-and-topic-patterns"><span class="octicon octicon-link"></span></a>Topics and topic patterns</h4>
+
+<p><strong>PUB</strong> and <strong>SUB</strong> sockets have an extra feature: the messages sent
+by a PUB socket are routed to SUB sockets according to a topic given
+by the PUB socket, and topic patterns given by the SUB socket.</p>
+
+<p>A PUB socket may set its <code>'topic'</code> using <code>#setsockopt('topic',
+string)</code>. All messages sent with <code>#write</code> will use that
+topic. Alternatively, you can use <code>#publish(topic, message,
+[encoding])</code> to give the topic per message.</p>
+
+<p>A SUB socket may pass in an additional parameter, in the second
+position, to <code>#connect</code>. This extra argument is a pattern that is
+matched against message topics; how the matching is done depends on
+the <code>'routing'</code> option given to the sockets (they must agree on the
+value):</p>
+
+<ul>
+<li>
+<code>'fanout'</code> is the default and means all messages go to all SUB
+sockets, regardless of the topic or topic pattern.</li>
+<li>
+<code>'direct'</code> means that message topics are matched with patterns
+using string equality.</li>
+<li>
+<code>'topic'</code> uses AMQP's wildcard matching: briefly, a topic consists
+of <code>'.'</code>-delimited words, and a pattern is the same but may contain
+wildcards, <code>'*'</code> meaning "any single word" and <code>'#'</code> meaning "any
+sequence of words". So, the pattern <code>"*.bar.#"</code> will match the
+topic <code>foo.bar.baz.bam"</code>. There's a longer explanation in the
+RabbitMQ <a href="http://www.rabbitmq.com/tutorials/tutorial-five-python.html">tutorial on topic matching</a>.</li>
+</ul><p>Leaving all the options alone, and using only the two-argument version
+of <code>#connect</code>, all SUB sockets connected to X will get all messages
+sent by PUB sockets connected to X.</p>
+
+<h4>
+<a name="socket-options" class="anchor" href="#socket-options"><span class="octicon octicon-link"></span></a>Socket options</h4>
+
+<p>Some socket types have options that may be set at any time with
+<code>Socket#setsockopt</code>, or given a value when the socket is created, in
+the second argument to <code>Context#socket</code>.</p>
+
+<h5>
+<a name="routing-and-topic" class="anchor" href="#routing-and-topic"><span class="octicon octicon-link"></span></a><code>routing</code> and <code>topic</code>
+</h5>
+
+<p><code>routing</code> is supplied to a <strong>PUB</strong> or <strong>SUB</strong> socket on creation, and
+determines how it will match topics to topic patterns, as described
+under "Topics". Sockets connected to the same address must agree on
+the routing.</p>
+
+<p><code>topic</code> may be set on a <strong>PUB</strong> socket to give the topic for
+subsequent messages sent using <code>#write</code>.</p>
+
+<h5>
+<a name="expiration" class="anchor" href="#expiration"><span class="octicon octicon-link"></span></a><code>expiration</code>
+</h5>
+
+<p>The option <code>'expiration'</code> may be set on writable sockets, i.e., PUB,
+PUSH, REQ and REP. It is given as a number of milliseconds:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">pub</span><span class="p">.</span><span class="nx">setsockopt</span><span class="p">(</span><span class="s1">'expiration'</span><span class="p">,</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
+</pre></div>
+
+<p>In the example, messages written to <code>pub</code> will be discarded by the
+server if they've not been delivered after 60,000
+milliseconds. Message expiration only works with versions of RabbitMQ
+newer than 3.0.0.</p>
+
+<p>You need to be careful when using expiry with a <strong>WORKER</strong>, <strong>REQ</strong> or
+<strong>REP</strong> socket, since losing a message will break ordering. Only
+sending one request at a time, and giving requests a time limit, may
+help.</p>
+
+<h5>
+<a name="prefetch" class="anchor" href="#prefetch"><span class="octicon octicon-link"></span></a><code>prefetch</code>
+</h5>
+
+<p>The option <code>'prefetch'</code>, determines how many messages RabbitMQ will
+send to the socket before waiting for some to be processed. This only
+has a noticable effect for <strong>WORKER</strong> and <strong>REP</strong> sockets. It is best
+set when the socket is created, but may be set any time afterwards.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">worker</span> <span class="o">=</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">socket</span><span class="p">(</span><span class="s1">'WORKER'</span><span class="p">,</span> <span class="p">{</span><span class="nx">prefetch</span><span class="o">:</span> <span class="mi">1</span><span class="p">});</span>
+</pre></div>
+
+<p>For instance, if you set <code>'prefetch'</code> to <code>1</code> on a <strong>WORKER</strong> socket,
+RabbitMQ will wait for you to call <code>#ack</code> for each message before
+sending another. On a <strong>REP</strong> socket, messages are acknowledged when
+the reply is written (i.e., <code>#write</code> doubles as an <code>#ack</code>), so
+<code>'prefetch'</code> will limit how many replies the socket can have
+outstanding.</p>
+
+<p>If you set it to <code>0</code>, RabbitMQ will forget any such
+constraint and just send what it has, when it has it. The default
+value is <code>0</code>.</p>
+
+<h5>
+<a name="persistent" class="anchor" href="#persistent"><span class="octicon octicon-link"></span></a><code>persistent</code>
+</h5>
+
+<p>The option <code>'persistent'</code> governs the lifetime of messages. Setting it
+to <code>true</code> means RabbitMQ will keep messages over restarts, by writing
+them to disk. This is an option for all sockets, and crucially,
+sockets connected to the same address must agree on persistence
+(because they must all declare the server resources with the same
+properties -- an unfortunate technical detail).</p>
+
+<p>In the case of <strong>REQ</strong> and <strong>REP</strong> sockets, the requests may be
+persistent, but replies never are; in other words, <code>'persistent'</code>
+applies only to requests.</p>
+
+<p>In the case of <strong>SUB</strong> and <strong>PUB</strong> sockets, <code>'persistent'</code> currently
+has no effect, but they may nonetheless have the option set.</p>
+
+<p>Setting this option to <code>false</code> using <code>#setsockopt</code> means that the
+messages following will not survive restarts, and any connections made
+while it is <code>false</code> will not persist messages. It may be set back
+to <code>true</code> of course, but this will not affect connections made in the
+meantime.</p>
+
+<p>See below for what <code>'persistent'</code> means in AMQP terms.</p>
+
+<h2>
+<a name="using-with-servers" class="anchor" href="#using-with-servers"><span class="octicon octicon-link"></span></a>Using with servers</h2>
+
+<p>A few modules have a socket-server-like abstraction; canonically, the
+<code>net</code> module, but also for example SockJS and Socket.IO. These can be
+adapted using something similar to the following.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">context</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'rabbit.js'</span><span class="p">).</span><span class="nx">createContext</span><span class="p">(</span><span class="s1">'amqp://localhost'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">inServer</span> <span class="o">=</span> <span class="nx">net</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">connection</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">s</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">socket</span><span class="p">(</span><span class="s1">'PUB'</span><span class="p">);</span>
+  <span class="nx">s</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s1">'incoming'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">connection</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">s</span><span class="p">);</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+<span class="nx">inServer</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">5000</span><span class="p">);</span>
+</pre></div>
+
+<p>This is a simplistic example: a bare TCP socket won't in general emit
+data in chunks that are meaningful to applications, even if they are
+sent that way at the far end.</p>
+
+<h2>
+<a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>Each subdirectory of <code>example</code> has code demonstrating using
+rabbit.js with other modules. Install the prerequisites for rabbit.js
+first:</p>
+
+<pre><code>rabbit.js$ npm install
+</code></pre>
+
+<p>Now each example can be run with, e.g.,</p>
+
+<pre><code>rabbit.js$ cd example/sockjs
+sockjs$ npm install &amp;&amp; npm start
+</code></pre>
+
+<p>All of the examples assume there is a <a href="http://rabbit.mq/download.html">RabbitMQ server
+running</a> locally. The SockJS and
+Socket.IO examples both start a website which you can visit at
+<code>http://localhost:8080</code>.</p>
+
+<h2>
+<a name="relation-to-zeromq" class="anchor" href="#relation-to-zeromq"><span class="octicon octicon-link"></span></a><a name="zeromq"></a>Relation to ZeroMQ</h2>
+
+<p>rabbit.js was inspired by the <a href="http://github.com/rabbitmq/rmq-0mq/">RabbitMQ/ZeroMQ
+adapter</a> I developed with Martin
+Sústrik. The rationale for using RabbitMQ in a ZeroMQ-based network is
+largely transferable to rabbit.js:</p>
+
+<ul>
+<li>RabbitMQ introduces a degree of monitoring and transparency,
+especially if one uses the web management app;</li>
+<li>RabbitMQ can bridge to other protocols (notably AMQP and STOMP);</li>
+<li>RabbitMQ provides reliable, persistent queues if desired</li>
+</ul><p>with some additional benefits:</p>
+
+<ul>
+<li>since rabbit.js sockets implement the <code>Stream</code> interface, one
+can easily pipe messages around</li>
+<li>using RabbitMQ as a backend obviates some configuration management
+-- just supply all instances the broker URL and you're good to go.</li>
+<li>there's room in the API for more involved routing and other
+behaviour since AMQP is, well, more complicated let's say.</li>
+</ul><p>Here are some notable differences and similarities to ZeroMQ in
+rabbit.js's API and semantics.</p>
+
+<p>To start, there's no distinction in rabbit.js between clients and
+servers (<code>connect</code> and <code>bind</code> in ZeroMQ, following the BSD socket
+API), since RabbitMQ is effectively acting as a relaying server for
+everyone to <code>connect</code> to. Relatedly, the argument supplied to
+<code>connect()</code> is abstract, in the sense that it's just a name rather
+than a transport-layer address.</p>
+
+<p>Request and Reply sockets have very similar semantics to those in
+ZeroMQ. Repliers must respond to requests in the order that they come
+in, and respond exactly once to each request.</p>
+
+<p>There are no DEALER or ROUTER sockets (a.k.a., XREQ and XREQ) in
+rabbit.js. In ZeroMQ these are implemented by prefixing messages with
+a reverse path, which then requires encoding and thereby complication
+when relaying to other streams or protocols. Instead, rabbit.js notes
+the reverse path as messages are relayed to a REP socket, and
+reapplies it when the response appears (giving rise to the ordering
+requirement on replies).</p>
+
+<p>There is no WORKER socket in ZeroMQ; the advice generally given is to
+use a REQ/REP pair and convey acknowledgments back to the requester
+(which is to retry in the case of failure or more likely,
+timeout). Since rabbit.js has RabbitMQ as a reliable intermediary,
+this can be cut short, with acknowledgments and retry handled by
+RabbitMQ.</p>
+
+<h2>
+<a name="relation-to-amqp-and-stomp" class="anchor" href="#relation-to-amqp-and-stomp"><span class="octicon octicon-link"></span></a>Relation to AMQP and STOMP</h2>
+
+<p>rabbit.js makes some simplifying assumptions that must be kept in mind
+when integrating with other protocols that RabbitMQ supports.</p>
+
+<p>PUB and SUB sockets declare exchanges named for the argument given to
+<code>#connect</code> and with the type given by the <code>'routing'</code> option. If a
+<code>topic</code> argument is given to <code>#connect</code>, it's used as the routing key
+pattern, otherwise <code>''</code> is used.</p>
+
+<p>To send to SUB sockets or receive from PUB sockets, publish or bind
+(or subscribe in the case of STOMP) to the exchange with the same name
+as given to <code>#connect</code>.</p>
+
+<p>PUSH, PULL, REQ and REP sockets use non-exclusive queues named for the
+argument given to <code>connect</code>. If you are replying via AMQP or STOMP, be
+sure to follow the convention of sending the response to the queue
+given in the <code>'replyTo'</code> property of the request message, and copying
+the <code>'correlationId'</code> property from the request in the reply. If you
+are requesting via AMQP or STOMP, at least supply a <code>replyTo</code>, and
+consider supplying a <code>correlationId</code>.</p>
+
+<p>The option <code>'persistent'</code> relates both to the <code>durable</code> property of
+queues and to the <code>deliveryMode</code> property given to messages. If a
+socket is <code>persistent</code>, it will declare queues as <code>durable</code>, and send
+messages with <code>deliveryMode</code> of <code>2</code>. The exceptions are SUB sockets,
+which don't declare their subscription queue as durable, although PUB
+sockets are allowed to publish persistent (<code>deliveryMode=2</code>) messages;
+and REQ sockets, which <strong>do</strong> declare the request queue (that they
+send to) as durable, but not their own reply queue.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/squaremo">squaremo</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
