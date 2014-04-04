@@ -20,7 +20,9 @@ context.on('ready', function() {
 ```
 
 See Github pages for documentation of the most recent release:
-https://squaremo.github.io/rabbit.js/
+https://squaremo.github.io/rabbit.js/, and the branch
+[gh-pages-next](https://github.com/squaremo/rabbit.js/tree/gh-pages-next)
+for provisional documentation of the next release.
 
 ## Status
 
