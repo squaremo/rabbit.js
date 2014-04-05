@@ -19,10 +19,11 @@ context.on('ready', function() {
 });
 ```
 
-See Github pages for documentation of the most recent release:
-https://squaremo.github.io/rabbit.js/, and the branch
+See Github pages for [documentation of the most recent
+release][gh-pages], and the branch
 [gh-pages-next](https://github.com/squaremo/rabbit.js/tree/gh-pages-next)
-for provisional documentation of the next release.
+for provisional documentation of the next release (which usually
+corresponds to the code in master branch).
 
 ## Status
 
@@ -30,7 +31,7 @@ Still on major version `0`, though in use in a number of places, I
 believe.
 
 Version 0.3.0 and on are built on [amqplib][]. Previous versions, of
-which v0.2.2 was the last, used [node-amqp][].
+which version 0.2.2 was the last, used [node-amqp][].
 
 ## Uses
 
@@ -41,3 +42,4 @@ to use RabbitMQ.
 
 [amqplib]: https://github.com/squaremo/amqp.node/
 [node-amqp]: https://github.com/postwait/node-amqp/
+[gh-pages]: https://squaremo.github.io/rabbit.js/
