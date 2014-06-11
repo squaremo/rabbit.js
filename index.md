@@ -99,6 +99,12 @@ sub.pipe(process.stdout);
 
 #### Connecting sockets
 
+`socket.connect(address [, connectedCallback])`
+
+The callback is invoked once the socket is connected; writes before
+then will not go to the connection (but may go to other connections if
+there are any).
+
 A socket may be connected more than once, by calling
 `socket.connect(x)` with different `x`s. What this entails depends on
 the socket type (see below). Messages to and from different
@@ -197,9 +203,24 @@ sockets must agree on the routing):
    topic `foo.bar.baz.bam"`. There's a longer explanation in the
    RabbitMQ [tutorial on topic matching][rabbitmq-topic-tute].
 
-Leaving all the options alone, and using only the two-argument version
-of `#connect`, all SUB sockets connected to X will get all messages
-sent by PUB sockets connected to X.
+Here's an example of using topic routing:
+
+```js
+var pub = ctx.socket('PUB', {routing: 'topic'});
+var sub = ctx.socket('SUB', {routing: 'topic'});
+sub.pipe(process.stdout);
+
+sub.connect('events', 'user.*', function() {
+  // Make sure we're listening before sending anything
+  pub.connect('events', function() {
+    pub.publish('user.create', JSON.stringify({username: "Fiver"}));
+  });
+});
+```
+
+Leaving all the options alone, and using only the normal (no topic)
+version of `#connect`, all SUB sockets connected to X will get all
+messages sent by PUB sockets connected to X.
 
 #### Socket options
 
