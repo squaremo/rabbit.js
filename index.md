@@ -68,6 +68,12 @@ pub.connect('alerts');
 sub.connect('alerts');
 ```
 
+The second, optional argument to the `socket` constructor is an
+object. This can contain fields giving parameters for the socket (only
+`'routing'` at this time), and initial values for socket options.
+
+#### Sockets as streams
+
 Sockets are [Streams][nodejs-stream] in object mode, with buffers as
 the objects. In particular, you can `#read()` buffers from those that
 are readable (or supply a callback for the `'data'` event, if you are
@@ -90,6 +96,8 @@ stream, making relaying simple:
 ```js
 sub.pipe(process.stdout);
 ```
+
+#### Connecting sockets
 
 A socket may be connected more than once, by calling
 `socket.connect(x)` with different `x`s. What this entails depends on
@@ -165,11 +173,18 @@ string)`. All messages sent with `#write` will use that
 topic. Alternatively, you can use `#publish(topic, message,
 [encoding])` to give the topic per message.
 
+##### Routing
+
+`routing` is a parameter supplied to a **PUB** or **SUB** socket on
+creation, and determines how it will match topics to topic
+patterns. Sockets connected to the same address must agree on the
+routing.
+
 A SUB socket may pass in an additional parameter, in the second
 position, to `#connect`. This extra argument is a pattern that is
-matched against message topics; how the matching is done depends on
-the `'routing'` option given to the sockets (they must agree on the
-value):
+matched against message topics. How the matching is done depends on
+the `'routing'` parameter given to the socket constructor (to connect,
+sockets must agree on the routing):
 
  - `'fanout'` is the default and means all messages go to all SUB
    sockets, regardless of the topic or topic pattern.
@@ -188,16 +203,11 @@ sent by PUB sockets connected to X.
 
 #### Socket options
 
-Some socket types have options that may be set at any time with
-`Socket#setsockopt`, or given a value when the socket is created, in
-the second argument to `Context#socket`.
+Sockets have options that may be set at any time with
+`Socket#setsockopt`. These may also be given initial values in the
+second argument to the socket constructor.
 
-##### `routing` and `topic`
-
-`routing` is supplied to a **PUB** or **SUB** socket on creation, and
-determines how it will match topics to topic patterns, as described
-under "Topics". Sockets connected to the same address must agree on
-the routing.
+##### `topic`
 
 `topic` may be set on a **PUB** socket to give the topic for
 subsequent messages sent using `#write`.
