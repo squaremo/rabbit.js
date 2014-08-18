@@ -408,3 +408,45 @@ suite.queueError = testWithContext(function(done, CTX) {
   });
   sock.connect('amq.reserved-namespace');
 });
+
+suite.discardMessage = testWithContext(function(done, CTX) {
+  var worker = CTX.socket('WORKER');
+  var push = CTX.socket('PUSH');
+  worker.connect('test.worker-reject');
+  worker.on('data', function(m) {
+    worker.discard();
+    done();
+  });
+  push.connect('test.worker-reject', function(_ok) {
+    push.write('foobar');
+  });
+});
+
+suite.requeueMessage = testWithContext(function(done, CTX) {
+  var worker1 = CTX.socket('WORKER');
+  var worker2 = CTX.socket('WORKER');
+  var recvd = false;
+  var q = 'test.worker-requeue';
+
+  var push = CTX.socket('PUSH');
+  worker1.connect(q);
+  worker2.connect(q);
+
+  function recv(msg) {
+    if (recvd) {
+      this.ack();
+      done();
+    }
+    else {
+      this.requeue();
+      recvd = true;
+    }
+  }
+
+  worker1.on('data', recv.bind(worker1));
+  worker2.on('data', recv.bind(worker2));
+
+  push.connect(q, function(_ok) {
+    push.write('foobar');
+  });
+});
