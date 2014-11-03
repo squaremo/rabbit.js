@@ -1,6 +1,15 @@
 rabbit.js release notes
 =======================
 
+v0.4.2
+------
+
+This release adds:
+
+ * TASK and WORKER sockets, for posting and processing different
+   varieties of task
+ * `'blocked'` and `'unblocked'` events, on connections
+
 v0.4.1
 ------
 
