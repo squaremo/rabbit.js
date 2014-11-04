@@ -6,8 +6,8 @@ v0.4.2
 
 This release adds:
 
- * TASK and WORKER sockets, for posting and processing different
-   varieties of task
+ * TASK sockets, for posting and different varieties of task
+ * `#requeue` and `#discard` for WORKER sockets
  * `'blocked'` and `'unblocked'` events, on connections
 
 v0.4.1
