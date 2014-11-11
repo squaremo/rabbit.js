@@ -1,5 +1,5 @@
 var sockets = require('./lib/sockets');
 
-module.exports.createContext = function(url) {
-  return new sockets.Context(url);
+module.exports.createContext = function(url, connOpts) {
+  return new sockets.Context(url, connOpts);
 }
