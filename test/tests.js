@@ -450,3 +450,113 @@ suite.requeueMessage = testWithContext(function(done, CTX) {
     push.write('foobar');
   });
 });
+
+
+suite.asyncJob = testWithContext(function(done, CTX) {
+  var job = CTX.socket('JOB', {prefetch:3});
+  var q = 'test.job';
+
+  var push = CTX.socket('PUSH');
+  job.connect(q);
+  ackedCount = 0;
+  recvCount = 0;
+  function recv(msg) {
+    var ctx = this;
+    ++recvCount;
+    var timeSpan = (3-recvCount) * 100;
+    setTimeout(function(){
+      // console.log("Acking:" + JSON.stringify(msg))
+      ctx.ack(msg);
+      if(++ackedCount == 3)  {
+        assert.ok("all async jobs acked");
+        done();
+      }
+    }, timeSpan)
+  }
+
+  job.on('data', recv.bind(job));
+
+  push.connect(q, function(_ok) {
+    push.write('foobar1');
+    push.write('foobar2');
+    push.write('foobar3');
+  });
+});
+
+suite.asyncJobWithNack = testWithContext(function(done, CTX) {
+  var job = CTX.socket('JOB', {prefetch:3});
+  var q = 'test.job.nack';
+
+  var push = CTX.socket('PUSH');
+  job.connect(q);
+  var ackedCount = 0;
+  var recvCount = 0;
+  function recv(msg) {
+    var ctx = this;
+    ++recvCount;
+    var timeSpan = (3-recvCount) * 400;
+    setTimeout(function(){
+       if(ackedCount == 1) {
+        ctx.nack(msg);
+      } else {
+        ctx.ack(msg);
+      }
+
+      if(++ackedCount == 4){
+        assert.ok("all async jobs acked");
+        done();
+      }
+    }, timeSpan)
+  }
+
+  job.on('data', recv.bind(job));
+
+  push.connect(q, function(_ok) {
+    push.write('foobar1');
+    push.write('foobar2');
+    push.write('foobar3');
+  });
+});
+
+suite.nextJob = testWithContext(function(done, CTX) {
+  var job = CTX.socket('JOB', {prefetch:3});
+  var q = 'test.job.previous';
+
+  var push = CTX.socket('PUSH');
+  job.connect(q);
+
+  var nextSocket = CTX.socket('PUSH');
+  var nextQ = 'test.job.next'
+  nextSocket.connect(nextQ);
+
+  var nextJob = CTX.socket('JOB');
+  nextJob.connect(nextQ);
+
+  var assertCount = 0;
+  var recvCount = 0;
+
+  function recvNext(msg) {
+    nextJob.ack(msg);
+    assertCount ++;
+    assert.equal(msg.content.toString(),'{"data":"data' + assertCount +'"}');
+    if (assertCount == 3) {
+      assert.ok("all next jobs queued");
+      done()
+    }
+  }
+
+  function recv(msg) {
+    recvCount ++;
+    var nextMsg = {"data":"data" + recvCount}
+    job.next(msg, nextSocket, nextMsg)
+  }
+
+  job.on('data', recv.bind(job));
+  nextJob.on('data', recvNext.bind(nextJob));
+
+  push.connect(q, function(_ok) {
+    push.write('foobar1');
+    push.write('foobar2');
+    push.write('foobar3');
+  });
+});

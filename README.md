@@ -40,6 +40,43 @@ programs), acting as a gateway to other kinds of network (e.g.,
 relaying to browsers via SockJS), and otherwise as a really easy way
 to use RabbitMQ.
 
+## Fork features
+
+### Topics
+JOB
+- provides access to the rabbitMQ message instead of the contents.
+
+The JOB topic allows for asynchronous acking of messages after a
+task has completed. So the worker can push the completed message
+onto another queue and then ack the original message ensuring that
+rabbitMQ always has a message in a queue related to the original
+job until all sub-tasks are complete.
+
+
+```js
+var ctx = require('rabbit.js').createContext();
+ctx.on('ready', function() {
+  var push = ctx.socket('PUSH');
+  var nextQ = 'bar-tasks'
+  push.connect(nextQ);
+
+  var job = ctx.socket('JOB', {prefetch:64});
+  var actionQ = 'foo-tasks';
+  job.connect(actionQ);
+
+
+  function recv(msg) {
+    /* Do work
+     ...
+    */
+    var nextMsg = {"data":"data"}
+    job.next(msg, push, nextMsg)
+  }
+
+  job.on('data', recv.bind(job));
+})
+```
+
 [amqplib]: https://github.com/squaremo/amqp.node/
 [node-amqp]: https://github.com/postwait/node-amqp/
 [gh-pages]: https://squaremo.github.io/rabbit.js/
