@@ -56,9 +56,9 @@ job until all sub-tasks are complete.
 ```js
 var ctx = require('rabbit.js').createContext();
 ctx.on('ready', function() {
-  var push = ctx.socket('PUSH');
-  var nextQ = 'bar-tasks'
-  push.connect(nextQ);
+    var push = ctx.socket('PUSH');
+    var nextQ = 'bar-tasks'
+    push.connect(nextQ);
 
   var job = ctx.socket('JOB', {prefetch:64});
   var actionQ = 'foo-tasks';
