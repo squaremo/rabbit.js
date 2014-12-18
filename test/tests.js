@@ -536,11 +536,15 @@ suite.nextJob = testWithContext(function(done, CTX) {
   var assertCount = 0;
   var recvCount = 0;
 
+  var recvdMessages = {}
   function recvNext(msg) {
     nextJob.ack(msg);
     assertCount ++;
-    assert.equal(msg.content.toString(),'{"data":"data' + assertCount +'"}');
+    recvdMessages[msg.content.toString()] = true;
     if (assertCount == 3) {
+      for (var i=1; i <= assertCount; i++) {
+        assert.ok(recvdMessages['{"data":"data' + assertCount +'"}'], "Missing message");
+      }
       assert.ok("all next jobs queued");
       done()
     }
@@ -563,6 +567,7 @@ suite.nextJob = testWithContext(function(done, CTX) {
 });
 
 
+
 suite.nextRoutedJob = testWithContext(function(done, CTX) {
   var exchange = "testRouteJobs"
   var routingKey = "routingKey"
@@ -572,25 +577,79 @@ suite.nextRoutedJob = testWithContext(function(done, CTX) {
 
   var job = CTX.socket('JOB', consumerOptions);
 
-  job.connect(queue, exchange, routingKey, function(){
+  job.connect(queue, exchange, routingKey);
 
-    var assertCount = 0;
+  var assertCount = 0;
 
-    function recv(msg) {
-      assertCount ++;
-      if (assertCount == 3) {
-        assert.ok("all next jobs queued");
-        done()
-      }
+  function recv(msg) {
+    assertCount ++;
+    if (assertCount == 3) {
+      assert.ok("all next jobs queued");
+      done()
     }
+  }
 
-    job.on('data', recv.bind(job));
+  job.on('data', recv.bind(job));
 
-    var provider = CTX.socket('SEND', providerOptions);
-    provider.connect(exchange, function(_ok) {
-      provider.publish(routingKey, 'foobar1');
-      provider.publish(routingKey, 'foobar2');
-      provider.publish(routingKey, 'foobar3');
-    });
+  var provider = CTX.socket('SEND', providerOptions);
+  provider.connect(exchange, function(_ok) {
+    provider.publish(routingKey, 'foobar1');
+    provider.publish(routingKey, 'foobar2');
+    provider.publish(routingKey, 'foobar3');
   });
+});
+
+suite.nextJobOnExchange = testWithContext(function(done, CTX) {
+  var exchange = "testNextJobs"
+  var routingKey = "testRoutingKey"
+  var nextRoutingKey = "nextRoutingKey"
+
+  //NB: Exchange options must align for the consumer and
+  var consumerOptions = {routing:'topic',durable:true, prefetch:3}
+  var providerOptions = {routing:'topic',durable:true}
+
+  var q = 'test.routed.previous';
+  var nextQ = 'test.routed.next'
+
+  var job = CTX.socket('JOB', consumerOptions);
+  job.connect(q, exchange, routingKey);
+
+  var nextSocket = CTX.socket('SEND', providerOptions);
+  nextSocket.connect(exchange);
+
+  var nextJob = CTX.socket('JOB', consumerOptions);
+  nextJob.connect(nextQ, exchange, nextRoutingKey);
+
+  var assertCount = 0;
+  var recvCount = 0;
+
+  var recvdMessages = {}
+  function recvNext(msg) {
+    nextJob.ack(msg);
+    assertCount ++;
+    recvdMessages[msg.content.toString()] = true;
+    if (assertCount == 3) {
+      for (var i=1; i <= assertCount; i++) {
+        assert.ok(recvdMessages['{"data":"data' + assertCount +'"}'], "Missing message");
+      }
+      assert.ok("all next jobs queued");
+      done()
+    }
+  }
+  function recv(msg) {
+    recvCount ++;
+    var nextMsg = {"data":"data" + recvCount}
+    job.next(msg, nextSocket, nextMsg, nextRoutingKey)
+  }
+
+  job.on('data', recv.bind(job));
+  nextJob.on('data', recvNext.bind(nextJob));
+
+  var push = CTX.socket('SEND', providerOptions);
+  push.connect(exchange, function(_ok) {
+    push.publish(routingKey,'foobar1');
+    push.publish(routingKey,'foobar2');
+    push.publish(routingKey,'foobar3');
+  });
+
 });

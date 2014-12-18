@@ -43,6 +43,11 @@ to use RabbitMQ.
 ## Fork features
 
 ### Topics
+SEND
+-- A provider for the JOB socket type that ensures that the exchange
+configurations can align. It is not required to use this socket type
+with a JOB provider when using the default exchange.
+
 JOB
 - provides access to the rabbitMQ message instead of the contents.
 
@@ -52,17 +57,24 @@ onto another queue and then ack the original message ensuring that
 rabbitMQ always has a message in a queue related to the original
 job until all sub-tasks are complete.
 
+ * see the test suite for more examples.
 
 ```js
 var ctx = require('rabbit.js').createContext();
 ctx.on('ready', function() {
-    var push = ctx.socket('PUSH');
-    var nextQ = 'bar-tasks'
-    push.connect(nextQ);
+  var exchange = "testNextJobs"
+  var routingKey = "testRoutingKey"
+
+  var consumerOptions = {routing:'topic',durable:true, prefetch:3}
+  var providerOptions = {routing:'topic',durable:true}
+
+  var provider = ctx.socket('SEND');
+  var nextQ = 'bar-tasks'
+  provider.connect(exchange, providerOptions);
 
   var job = ctx.socket('JOB', {prefetch:64});
   var actionQ = 'foo-tasks';
-  job.connect(actionQ);
+  job.connect(actionQ, exchange, routingKey, consumerOptions);
 
 
   function recv(msg) {
@@ -70,12 +82,13 @@ ctx.on('ready', function() {
      ...
     */
     var nextMsg = {"data":"data"}
-    job.next(msg, push, nextMsg)
+    job.next(msg, provider, nextMsg, routingKey)
   }
 
   job.on('data', recv.bind(job));
 })
 ```
+
 
 [amqplib]: https://github.com/squaremo/amqp.node/
 [node-amqp]: https://github.com/postwait/node-amqp/

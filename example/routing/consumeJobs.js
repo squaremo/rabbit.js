@@ -5,6 +5,11 @@
 var ctx = require('../../index').createContext();
 
 ctx.on('ready', function() {
+  var exchange = "stressNextJobs"
+  var routingKey = "stressRoutingKey"
+  var q = 'routed_to_queue';
+
+  var consumerOptions = {routing:'topic',durable:true, prefetch:64}
 
   var now = process.hrtime(), since = now;
   var i = 0, j = 0;
@@ -22,10 +27,8 @@ ctx.on('ready', function() {
   }
 
 
-  var job = ctx.socket('JOB', {prefetch:64});
-  var q = 'easyamqp.async';
-
-  job.connect(q);
+  var job = ctx.socket('JOB', consumerOptions);
+  job.connect(q, exchange, routingKey);
 
   function recv(msg) {
     job.ack(msg);
