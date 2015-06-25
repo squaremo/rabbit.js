@@ -1,0 +1,23 @@
+language: node_js
+
+node_js:
+   - "0.8"
+   - "0.9"
+   - "0.10"
+   - "0.11"
+   - "0.12"
+   - "iojs-v1.0"
+   - "iojs-v1.1"
+   - "iojs-v1.2"
+   - "iojs-v1.3"
+   - "iojs-v1.4"
+   - "iojs-v1.5"
+   - "iojs-v1.6"
+   - "iojs-v1"
+   - "iojs"
+
+services:
+   - rabbitmq
+
+before_install:
+  - npm install -g npm@~1.4.6
