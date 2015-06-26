@@ -1,6 +1,12 @@
 rabbit.js release notes
 =======================
 
+v0.4.3
+------
+
+This release adds entries to the "engine" specification, so rabbit.js
+can be used with io.js and Node.js 0.12.
+
 v0.4.2
 ------
 
