@@ -1,6 +1,12 @@
 rabbit.js release notes
 =======================
 
+v0.4.4
+------
+
+This release updates the version of amqplib used to a much more recent
+release, amqplib v0.3.2.
+
 v0.4.3
 ------
 
