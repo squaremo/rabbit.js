@@ -20,7 +20,7 @@
     "node": ">=0.8 <0.13 || ^1"
   },
   "dependencies": {
-    "amqplib": "0.1",
+    "amqplib": "0.3.2",
     "node-uuid": "",
     "readable-stream": "~1 >=1.0.2"
   },
