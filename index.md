@@ -157,6 +157,18 @@ crashes, will be requeued and delivered to another connected socket
 additional method `#ack` which acknowledges the oldest unacknowledged
 message, and must be called once only for each message.
 
+```js
+var worker = context.socket('WORKER');
+worker.connect('queue');
+worker.on('data', function(job) {
+  asyncFunction(function(){
+    
+    // Acknowledge that it's done
+    worker.ack();
+  });
+});
+```
+
 A way to maintain ordering for REP and WORKER sockets is shown in the
 ["ordering" example][ordering-example].
 
