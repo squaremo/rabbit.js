@@ -195,6 +195,59 @@ suite.topicPubSub = testWithContext(function(done, CTX) {
   });
 });
 
+suite.distributedPubSub = testWithContext(function(done, CTX) {
+  var pub = CTX.socket('PUB', {routing: 'topic'});
+
+  var publishQueue = 'testDistributedPubSub';
+  var sharedQueue = 'foo.bar.baz'
+
+  var topicWildcard = 'foo.*';
+  var publishTopic = 'foo.bar';
+
+  var socketConfig = {
+    routing: 'topic',
+    sharedQueue: sharedQueue
+  };
+
+  var content = randomString();
+
+  subscriberCount = 5;
+
+  var expectedMessages = Array.apply(null, {length: subscriberCount}).map(Number.call, Number);
+  var receivedMessages = [];
+
+  var subs = expectedMessages.map(function(idx) {
+    var sub = CTX.socket('SUB', socketConfig);
+    sub.setEncoding('utf8');
+    sub.once('data', function (msg) {
+      try { assert.equal(content, msg); receivedMessages.push(idx); checkDone(); }
+      catch (e) { checkDone(e); }
+    });
+    return sub;
+  });
+
+  connectSubscribers();
+
+  function checkDone(error) {
+    if (error) return done(error);
+    if (receivedMessages.length < expectedMessages.length) return;
+
+    receivedMessages.sort();
+
+    try { assert.deepEqual(receivedMessages, expectedMessages); done(); }
+    catch (e) { done(e); }
+  }
+
+  function connectSubscribers(idx) {
+    idx = idx || 0;
+    if (idx === subs.length) return pub.connect(publishQueue, function() {
+      subs.forEach(pub.publish.bind(pub, publishTopic, content, 'utf8'));
+    });
+
+    subs[idx].connect(publishQueue, topicWildcard, connectSubscribers.bind(null, idx + 1));
+  }
+});
+
 suite.simplestWorker = testWithContext(function(done, CTX) {
   var work = CTX.socket('WORKER');
   work.setEncoding('utf8');
@@ -349,7 +402,7 @@ suite.onePerPull = testWithContext(function(done, CTX) {
 suite.expiredPush = testWithContext(function(done, CTX){
   var pull = CTX.socket('PULL');
   pull.setEncoding('utf8');
-  
+
   var push = CTX.socket('PUSH');
   var target = 'testExpiration';
 
