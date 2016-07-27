@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "amqplib": "0.3.2",
+    "lodash": "4.14.0",
     "node-uuid": "",
     "readable-stream": "~1 >=1.0.2"
   },
