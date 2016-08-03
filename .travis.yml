@@ -20,4 +20,6 @@ services:
    - rabbitmq
 
 before_install:
-  - npm install -g npm@~1.4.6
+   - node --version | (grep  -v 'v5' && npm install -g npm@2) || true
+
+sudo: false
