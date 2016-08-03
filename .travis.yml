@@ -2,22 +2,19 @@ language: node_js
 
 node_js:
    - "0.8"
-   - "0.9"
    - "0.10"
-   - "0.11"
    - "0.12"
-   - "iojs-v1.0"
-   - "iojs-v1.1"
-   - "iojs-v1.2"
-   - "iojs-v1.3"
-   - "iojs-v1.4"
-   - "iojs-v1.5"
-   - "iojs-v1.6"
    - "iojs-v1"
-   - "iojs"
+   - "iojs-v2"
+   - "iojs-v3"
+   - "4.2"
+   - "5.5"
+   - "node"
 
 services:
    - rabbitmq
 
 before_install:
-  - npm install -g npm@~1.4.6
+   - node --version | (grep  -v 'v5' && npm install -g npm@2) || true
+
+sudo: false
