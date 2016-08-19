@@ -50,6 +50,7 @@ function testWithContext(test) {
               done(maybeErr);
             };
             ctx.on('ready', function() { return test(closeAndDone, ctx); });
+            ctx.on('error', function(err) { console.log("Error", err); });
         });
     };
 }
@@ -349,7 +350,7 @@ suite.onePerPull = testWithContext(function(done, CTX) {
 suite.expiredPush = testWithContext(function(done, CTX){
   var pull = CTX.socket('PULL');
   pull.setEncoding('utf8');
-  
+
   var push = CTX.socket('PUSH');
   var target = 'testExpiration';
 
@@ -449,4 +450,206 @@ suite.requeueMessage = testWithContext(function(done, CTX) {
   push.connect(q, function(_ok) {
     push.write('foobar');
   });
+});
+
+
+suite.asyncJob = testWithContext(function(done, CTX) {
+  var job = CTX.socket('JOB', {prefetch:3});
+  var q = 'test.job';
+
+  var push = CTX.socket('PUSH');
+  job.connect(q);
+  ackedCount = 0;
+  recvCount = 0;
+  function recv(msg) {
+    var ctx = this;
+    ++recvCount;
+    var timeSpan = (3-recvCount) * 100;
+    setTimeout(function(){
+      // console.log("Acking:" + JSON.stringify(msg))
+      ctx.ack(msg);
+      if(++ackedCount == 3)  {
+        assert.ok("all async jobs acked");
+        done();
+      }
+    }, timeSpan)
+  }
+
+  job.on('data', recv.bind(job));
+
+  push.connect(q, function(_ok) {
+    push.write('foobar1');
+    push.write('foobar2');
+    push.write('foobar3');
+  });
+});
+
+suite.asyncJobWithNack = testWithContext(function(done, CTX) {
+  var job = CTX.socket('JOB', {prefetch:3});
+  var q = 'test.job.nack';
+
+  var push = CTX.socket('PUSH');
+  job.connect(q);
+  var ackedCount = 0;
+  var recvCount = 0;
+  function recv(msg) {
+    var ctx = this;
+    ++recvCount;
+    var timeSpan = (3-recvCount) * 400;
+    setTimeout(function(){
+       if(ackedCount == 1) {
+        ctx.nack(msg);
+      } else {
+        ctx.ack(msg);
+      }
+
+      if(++ackedCount == 4){
+        assert.ok("all async jobs acked");
+        done();
+      }
+    }, timeSpan)
+  }
+
+  job.on('data', recv.bind(job));
+
+  push.connect(q, function(_ok) {
+    push.write('foobar1');
+    push.write('foobar2');
+    push.write('foobar3');
+  });
+});
+
+suite.nextJob = testWithContext(function(done, CTX) {
+  var q = 'test.job.previous';
+  var job = CTX.socket('JOB', {prefetch:3});
+  job.connect(q);
+
+  var push = CTX.socket('PUSH');
+
+  var nextSocket = CTX.socket('PUSH');
+  var nextQ = 'test.job.next'
+  nextSocket.connect(nextQ);
+
+  var nextJob = CTX.socket('JOB');
+  nextJob.connect(nextQ);
+
+  var assertCount = 0;
+  var recvCount = 0;
+
+  var recvdMessages = {}
+  function recvNext(msg) {
+    nextJob.ack(msg);
+    assertCount ++;
+    recvdMessages[msg.content.toString()] = true;
+    if (assertCount == 3) {
+      for (var i=1; i <= assertCount; i++) {
+        assert.ok(recvdMessages['{"data":"data' + assertCount +'"}'], "Missing message");
+      }
+      assert.ok("all next jobs queued");
+      done()
+    }
+  }
+
+  function recv(msg) {
+    recvCount ++;
+    var nextMsg = {"data":"data" + recvCount}
+    job.next(msg, nextSocket, nextMsg)
+  }
+
+  job.on('data', recv.bind(job));
+  nextJob.on('data', recvNext.bind(nextJob));
+
+  push.connect(q, function(_ok) {
+    push.write('foobar1');
+    push.write('foobar2');
+    push.write('foobar3');
+  });
+});
+
+
+
+suite.nextRoutedJob = testWithContext(function(done, CTX) {
+  var exchange = "testRouteJobs"
+  var routingKey = "routingKey"
+  var queue = 'testRoutedJobs';
+  var consumerOptions = {routing:'topic',durable:true,prefetch:3}
+  var providerOptions = {routing:'topic',durable:true}
+
+  var job = CTX.socket('JOB', consumerOptions);
+
+  job.connect(queue, exchange, routingKey);
+
+  var assertCount = 0;
+
+  function recv(msg) {
+    assertCount ++;
+    if (assertCount == 3) {
+      assert.ok("all next jobs queued");
+      done()
+    }
+  }
+
+  job.on('data', recv.bind(job));
+
+  var provider = CTX.socket('SEND', providerOptions);
+  provider.connect(exchange, function(_ok) {
+    provider.publish(routingKey, 'foobar1');
+    provider.publish(routingKey, 'foobar2');
+    provider.publish(routingKey, 'foobar3');
+  });
+});
+
+suite.nextJobOnExchange = testWithContext(function(done, CTX) {
+  var exchange = "testNextJobs"
+  var routingKey = "testRoutingKey"
+  var nextRoutingKey = "nextRoutingKey"
+
+  //NB: Exchange options must align for the consumer and
+  var consumerOptions = {routing:'topic',durable:true, prefetch:3}
+  var providerOptions = {routing:'topic',durable:true}
+
+  var q = 'test.routed.previous';
+  var nextQ = 'test.routed.next'
+
+  var job = CTX.socket('JOB', consumerOptions);
+  job.connect(q, exchange, routingKey);
+
+  var nextSocket = CTX.socket('SEND', providerOptions);
+  nextSocket.connect(exchange);
+
+  var nextJob = CTX.socket('JOB', consumerOptions);
+  nextJob.connect(nextQ, exchange, nextRoutingKey);
+
+  var assertCount = 0;
+  var recvCount = 0;
+
+  var recvdMessages = {}
+  function recvNext(msg) {
+    nextJob.ack(msg);
+    assertCount ++;
+    recvdMessages[msg.content.toString()] = true;
+    if (assertCount == 3) {
+      for (var i=1; i <= assertCount; i++) {
+        assert.ok(recvdMessages['{"data":"data' + assertCount +'"}'], "Missing message");
+      }
+      assert.ok("all next jobs queued");
+      done()
+    }
+  }
+  function recv(msg) {
+    recvCount ++;
+    var nextMsg = {"data":"data" + recvCount}
+    job.next(msg, nextSocket, nextMsg, nextRoutingKey)
+  }
+
+  job.on('data', recv.bind(job));
+  nextJob.on('data', recvNext.bind(nextJob));
+
+  var push = CTX.socket('SEND', providerOptions);
+  push.connect(exchange, function(_ok) {
+    push.publish(routingKey,'foobar1');
+    push.publish(routingKey,'foobar2');
+    push.publish(routingKey,'foobar3');
+  });
+
 });

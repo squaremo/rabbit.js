@@ -1,0 +1,11 @@
+{
+  "name": "rabbit.js-routing-example",
+  "version": "0.0.1",
+  "description": "Example of using rabbit.js with a routing key",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "Jason Rudland <knowlecules@gmail.com>",
+  "license": "BSD"
+}
