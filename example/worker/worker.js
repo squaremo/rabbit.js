@@ -8,9 +8,12 @@ context.on('ready', function() {
     pusher.on('data', function(result) {
       var data = JSON.parse(result);
       console.log('Received: ', data);
-      if (data.messageId) {
-        pusher.ack(data.messageId);
-      }
+      setTimeout(function() {
+        if (data.messageId) {
+          console.log('Ack: ', data);
+          pusher.ack(data.messageId);
+        }
+      }, Math.round(Math.random()*1000));
     });
   });
 });
