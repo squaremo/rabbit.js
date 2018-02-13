@@ -21,8 +21,7 @@
   },
   "dependencies": {
     "amqplib": "0.5.2",
-    "node-uuid": "",
-    "readable-stream": "2undefined",
+    "readable-stream": "2.3.4",
     "uuid": "^3.2.1"
   },
   "devDependencies": {
