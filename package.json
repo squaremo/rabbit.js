@@ -20,10 +20,10 @@
     "node": ">=0.8 <0.13 || ^1"
   },
   "dependencies": {
-    "amqplib": "0.3.2",
+    "amqplib": "0.5.2",
     "node-uuid": "",
-    "readable-stream": "~1 >=1.0.2",
-    "uuid": "^3.0.1"
+    "readable-stream": "2undefined",
+    "uuid": "^3.2.1"
   },
   "devDependencies": {
     "mocha": ""
