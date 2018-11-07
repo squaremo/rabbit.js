@@ -1,7 +1,7 @@
 {
-  "name": "rabbit.js",
+  "name": "rabbitjs",
   "description": "Easy stream-based messaging using RabbitMQ",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "homepage": "http://github.com/squaremo/rabbit.js",
   "repository": {
     "type": "git",
