@@ -21,10 +21,10 @@
   },
   "dependencies": {
     "amqplib": "0.5.2",
-    "readable-stream": "3.0.3",
+    "readable-stream": "3.0.6",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
-    "mocha": ""
+    "mocha": "^5.2.0"
   }
 }
