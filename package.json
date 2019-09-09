@@ -1,13 +1,12 @@
 {
-  "name": "rabbit.js",
-  "description": "Easy stream-based messaging using RabbitMQ",
-  "version": "0.4.4",
-  "homepage": "http://github.com/squaremo/rabbit.js",
+  "name": "rabbit.js-fix",
+  "description": "fork from https://github.com/squaremo/rabbit.js : Easy stream-based messaging using RabbitMQ",
+  "version": "0.4.5",
+  "homepage": "https://github.com/jimliu7434/rabbit.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/squaremo/rabbit.js.git"
+    "url": "https://github.com/jimliu7434/rabbit.js"
   },
-  "author": "Michael Bridgen <mikeb@squaremobius.net>",
   "directories": {
     "lib": "lib",
     "test": "test"
@@ -17,7 +16,7 @@
     "test": "./node_modules/mocha/bin/mocha --ui exports test"
   },
   "engines": {
-    "node": ">=0.8 <0.13 || ^1"
+    "node": ">=8.0"
   },
   "dependencies": {
     "amqplib": "0.3.2",
